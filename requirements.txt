@@ -1,0 +1,7 @@
+requests
+pyyaml
+psutil
+python-dotenv
+Pillow
+pyautogui
+rich
