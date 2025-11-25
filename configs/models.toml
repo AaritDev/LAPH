@@ -1,0 +1,19 @@
+[default]
+name = "qwen3:14b"
+provider = "ollama"
+role = "primary"
+
+[mini]
+name = "qwen3:4b"
+provider = "ollama"
+role = "summarizer"
+
+[vision]
+name = "llava-llama3:8b"
+provider = "ollama"
+role = "vision"
+
+[coder]
+name = "qwen2.5-coder:7b-instruct"
+provider = "ollama"
+role = "coder"
