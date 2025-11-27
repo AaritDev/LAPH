@@ -33,7 +33,7 @@ Self-correction for tkinter/PyQt/pygame apps
 Phase 3 — Multi-Model Pipeline + Agentic Skills:
 “Thinker model” (e.g., Qwen3-14B)
 “Coder model” (e.g., smaller 3B/4B model)
-“Vision model” (ViT/TinyLLaVA)
+“Vision model” (qwen3-vl:8b)
 Dynamic routing based on task complexity
 Auto-install missing libraries
 Auto-optimize its own parameters
@@ -49,7 +49,7 @@ ollama pull qwen3:14b
 
 ollama pull qwen3:4b
 
-ollama pull llava-llama3:8b
+ollama pull qwen3-vl:8b
 
 ollama pull qwen2.5-coder:7b-instruct
 
