@@ -44,6 +44,7 @@ Install deps:
 pip install -r requirements.txt
 
 Pull the default model (recommended):
+
 ollama pull qwen3:14b
 
 ollama pull qwen3:4b
