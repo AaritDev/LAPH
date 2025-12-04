@@ -1,13 +1,13 @@
-####L.A.P.H. — Local Autonomous Programming Helper
+#### L.A.P.H. — Local Autonomous Programming Helper
 
-##🧠 What L.A.P.H. Actually Is (Full Corporate Jargon Mode):
+## 🧠 What L.A.P.H. Actually Is (Full Corporate Jargon Mode):
 A locally-hosted, multi-agent, self-reflexive autonomous programming framework capable of continuous code generation, execution, validation, and correction through iterative feedback cycles, leveraging decentralized LLM orchestration, dynamic error-driven model routing, and fully offline compute workflows.
 
-##🍼 What That Means in Human Words:
+## 🍼 What That Means in Human Words:
 A lil AI homie who writes code, runs it, sees if it exploded, learns from the explosion, and tries again.
 (Linux-only for now — because Arch btw.)
 
-###🚀 Vision
+### 🚀 Vision
 L.A.P.H. is designed as a fully offline, privacy-preserving, developer-grade AI agent that:
 1. Writes code
 2. Runs code
@@ -16,7 +16,7 @@ L.A.P.H. is designed as a fully offline, privacy-preserving, developer-grade AI 
 5. …and keeps iterating until the output is clean.
 Think of it as your local junior developer intern that never complains, never sleeps, and runs entirely on your machine. No API keys. No cloud. No telemetry. Just vibes and compute.
 
-##🎯 Project Roadmap
+## 🎯 Project Roadmap
  - Phase 1 — Core Autonomy (MVP):
    Generate → run → capture error → fix → repeat
    Local LLM loop via Ollama/Qwen3
@@ -39,7 +39,7 @@ Think of it as your local junior developer intern that never complains, never sl
    Auto-optimize its own parameters
    Generates a persistent activity log via a super-tiny 1B summarizer
 
-⚡ Quickstart:
+## ⚡ Quickstart:
 Install deps:
 ``` sh
 pip install -r requirements.txt
@@ -59,9 +59,11 @@ ollama pull qwen2.5-coder:7b-instruct
 ```
 
 Configure your model endpoint in:
-core/llm_interface.py
+"core/llm_interface.py"
 
 Run the agent:
+``` sh
 python3 main.py
+```
 
-📅 Date Started: 17 November 2025
+# 📅 Date Started: 17 November 2025
