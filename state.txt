@@ -1,0 +1,6 @@
+# L.A.P.H. State File
+# Tracks last error, last code, and iteration for persistent repair loop
+
+iteration: 0
+last_code: ""
+last_error: ""
