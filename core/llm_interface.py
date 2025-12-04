@@ -10,15 +10,15 @@ class LLMInterface:
         Send a prompt to a local Ollama model via HTTP API and return the output.
         """
         try:
-            url = "http://localhost:11343/apt/chat/"
+            url = "http://localhost:11434/api/generate"
             payload = {
                 "model": self.model_name,
-                "messages": [{"role": "user", "content": prompt}],
+                "prompt": prompt,
                 "stream": False
             }
             response = requests.post(url, json=payload, timeout=30)
             response.raise_for_status()
             data = response.json()
-            return data.get("message", {}).get("content", "[No response]")
+            return data.get("response", "[No response]")
         except Exception as e:
             return f"[LLM ERROR] {e}"

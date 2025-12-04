@@ -10,7 +10,7 @@ def main():
     else:
         from core.repair_loop import RepairLoop
         print("=== L.A.P.H. — Local Autonomous Programming Helper ===")
-        task = input("\nDescribe the program you want L.A.P.H. to build:\n> ")
+        task = input("\nDescribe the program you want L.A.P.H. to build\n> ")
         agent = RepairLoop()
         final_code = agent.run_task(task)
         if final_code:
