@@ -2,6 +2,8 @@ import ttkbootstrap as tb
 from ttkbootstrap.constants import PRIMARY, SUCCESS, DANGER, WARNING
 import threading
 from core.repair_loop import RepairLoop
+import tkinter as tk
+from tkinter import scrolledtext
 
 class LAPH_GUI:
     def __init__(self, root):
@@ -24,7 +26,7 @@ class LAPH_GUI:
         self.run_button.pack(pady=10)
         self.status_label = tb.Label(frame, text="Idle", font=("Segoe UI", 12), bootstyle=PRIMARY)
         self.status_label.pack(pady=5)
-        self.output_box = tb.ScrolledText(frame, width=100, height=25, font=("Fira Mono", 12))
+        self.output_box = scrolledtext.ScrolledText(frame, width=100, height=25, font=("Fira Mono", 12))
         self.output_box.pack(pady=10)
 
         # Dice roller example button
