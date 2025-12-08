@@ -1,1 +1,4 @@
 ONLY FOR ME.txt
+core/__pycache__/
+log/laph.log
+state.txt
