@@ -1,69 +1,113 @@
 import ttkbootstrap as tb
-from ttkbootstrap.constants import PRIMARY, SUCCESS, DANGER, WARNING
+from ttkbootstrap.constants import PRIMARY, SUCCESS, DANGER, WARNING, INFO
 import threading
 from core.repair_loop import RepairLoop
 import tkinter as tk
 from tkinter import scrolledtext
+from core.logger import Logger
 
 class LAPH_GUI:
     def __init__(self, root):
         self.root = root
         self.root.title("L.A.P.H. — Local Autonomous Programming Helper")
-        self.root.geometry("900x700")
-        self.agent = RepairLoop()
+        self.root.geometry("1400x900")
+        self.logger = Logger()
+        self.logger.register_callback(self.log_message)
+        self.agent = RepairLoop(self.logger)
         self.setup_widgets()
 
     def setup_widgets(self):
-        style = tb.Style("superhero")  # Brighter, modern dark theme
+        style = tb.Style("superhero")
 
-        frame = tb.Frame(self.root, padding=0, bootstyle="dark")
-        frame.pack(fill="both", expand=True)
+        main_frame = tb.Frame(self.root, padding=20, bootstyle="dark")
+        main_frame.pack(fill="both", expand=True)
 
-        # Title area
-        title_frame = tb.Frame(frame, bootstyle="dark")
-        title_frame.pack(pady=(20, 5))
-        tb.Label(title_frame, text="L.A.P.H.", font=("Orbitron", 40, "bold"), bootstyle=PRIMARY).pack()
-        tb.Label(title_frame, text="Local Autonomous Programming Helper", font=("Segoe UI", 15, "italic"), bootstyle="info").pack()
+        # Title
+        title_frame = tb.Frame(main_frame, bootstyle="dark")
+        title_frame.pack(pady=(0, 20))
+        tb.Label(title_frame, text="L.A.P.H.", font=("Orbitron", 48, "bold"), bootstyle=PRIMARY).pack()
+        tb.Label(title_frame, text="Local Autonomous Programming Helper", font=("Segoe UI", 16, "italic"), bootstyle="info").pack()
 
-        # Card-like input area
-        input_card = tb.Frame(frame, padding=24, bootstyle="info")
-        input_card.pack(pady=18, padx=40, fill="x")
-        tb.Label(input_card, text="Describe your program:", font=("Segoe UI", 15, "bold"), bootstyle="inverse-info").pack(anchor="w", pady=(0, 10))
+        # Input Frame
+        input_frame = tb.Labelframe(main_frame, text="Your Task", padding=20, bootstyle=PRIMARY)
+        input_frame.pack(fill="x", pady=(0, 20))
+
+        self.task_entry = tb.Entry(input_frame, width=70, font=("Fira Sans", 14))
+        self.task_entry.pack(pady=10, padx=5, ipady=10, fill="x", expand=True)
         
-        # New LabeledEntry for Max Iterations
-        max_iters_frame = tb.Frame(input_card, bootstyle="info")
-        max_iters_frame.pack(fill="x", pady=(0, 10))
-        tb.Label(max_iters_frame, text="Max Iterations:", font=("Segoe UI", 12, "bold"), bootstyle="inverse-info").pack(side="left", anchor="w")
-        self.max_iters_entry = tb.Entry(max_iters_frame, width=10, font=("Fira Sans", 12))
-        self.max_iters_entry.insert(0, "10")  # Default value
-        self.max_iters_entry.pack(side="left", padx=5)
+        # Options Frame
+        options_frame = tb.Frame(input_frame, bootstyle="dark")
+        options_frame.pack(fill="x", expand=True)
 
-        self.task_entry = tb.Entry(input_card, width=70, font=("Fira Sans", 14))
-        self.task_entry.pack(pady=6, padx=2, ipady=8, fill="x")
+        tb.Label(options_frame, text="Max Iterations:", font=("Segoe UI", 12), bootstyle="inverse-dark").pack(side="left", padx=(5,5))
+        self.max_iters_entry = tb.Entry(options_frame, width=10, font=("Fira Sans", 12))
+        self.max_iters_entry.insert(0, "10")
+        self.max_iters_entry.pack(side="left", padx=(0, 10))
 
-        # Button row
-        button_row = tb.Frame(input_card, bootstyle="info")
-        button_row.pack(pady=12, fill="x")
-        self.run_button = tb.Button(button_row, text="🚀 Run Task", bootstyle="success", command=self.run_task_thread, width=18)
-        self.run_button.pack(side="left", padx=(0, 12))
-        tb.Button(button_row, text="🎲 Dice Roller Example", bootstyle="warning", command=self.fill_dice_prompt, width=22).pack(side="left")
+        unlimited_button = tb.Button(options_frame, text="♾️ Unlimited", bootstyle="info", command=lambda: self.max_iters_entry.delete(0, "end") or self.max_iters_entry.insert(0, "60"))
+        unlimited_button.pack(side="left", padx=(0, 20))
 
-        # Status label
-        self.status_label = tb.Label(input_card, text="Idle", font=("Fira Sans", 12, "bold"), bootstyle="primary")
-        self.status_label.pack(pady=7, anchor="w")
+        self.run_button = tb.Button(options_frame, text="🚀 Run Task", bootstyle=SUCCESS, command=self.run_task_thread)
+        self.run_button.pack(side="right", padx=5)
+        
+        self.example_button = tb.Button(options_frame, text="🎲 Dice Roller Example", bootstyle=WARNING, command=self.fill_dice_prompt)
+        self.example_button.pack(side="right", padx=5)
 
-        # Output area
-        output_card = tb.Frame(frame, padding=18, bootstyle="dark")
-        output_card.pack(pady=(18, 0), padx=40, fill="both", expand=True)
-        tb.Label(output_card, text="Generated Code Output", font=("Fira Sans", 13, "bold"), bootstyle="inverse-dark").pack(anchor="w", pady=(0, 8))
-        self.output_box = scrolledtext.ScrolledText(output_card, width=100, height=20, font=("Fira Mono", 13), bg="#181c20", fg="#e0e0e0", insertbackground="#e0e0e0", borderwidth=2, relief="groove")
+
+        # Paned Window for Output and Logs
+        paned_window = tb.Panedwindow(main_frame, orient="horizontal", bootstyle="dark")
+        paned_window.pack(fill="both", expand=True, pady=(10, 0))
+
+        # Left Paned Window for Thinker and Coder
+        left_paned_window = tb.Panedwindow(paned_window, orient="vertical", bootstyle="dark")
+        paned_window.add(left_paned_window, weight=1)
+        
+        # Thinker area
+        thinker_frame = tb.Labelframe(left_paned_window, text="Thinker Output", padding=10, bootstyle=INFO)
+        left_paned_window.add(thinker_frame, weight=1)
+
+        self.thinker_box = scrolledtext.ScrolledText(thinker_frame, width=100, height=10, font=("Fira Mono", 11), bg="#1e1e1e", fg="#a9a9a9", insertbackground="white", borderwidth=0, relief="flat")
+        self.thinker_box.pack(pady=5, fill="both", expand=True)
+
+        # Coder area
+        coder_frame = tb.Labelframe(left_paned_window, text="Generated Code", padding=10, bootstyle=SUCCESS)
+        left_paned_window.add(coder_frame, weight=2)
+        
+        self.output_box = scrolledtext.ScrolledText(coder_frame, width=100, height=15, font=("Fira Mono", 12), bg="#1e1e1e", fg="#d4d4d4", insertbackground="white", borderwidth=0, relief="flat")
         self.output_box.pack(pady=5, fill="both", expand=True)
+        
+        copy_button = tb.Button(coder_frame, text="Copy Code", command=self.copy_code, bootstyle="info-outline")
+        copy_button.pack(pady=5)
 
-        # Add subtle drop shadow to main window (if supported)
-        try:
-            self.root.tk.call("wm", "attributes", ".", "-alpha", 0.98)
-        except Exception:
-            pass
+
+        # Log area
+        log_frame = tb.Labelframe(paned_window, text="LLM Status & Execution", padding=10, bootstyle=INFO)
+        paned_window.add(log_frame, weight=1)
+
+        self.log_box = scrolledtext.ScrolledText(log_frame, width=100, height=10, font=("Fira Mono", 11), bg="#1e1e1e", fg="#a9a9a9", insertbackground="white", borderwidth=0, relief="flat")
+        self.log_box.pack(pady=5, fill="both", expand=True)
+        
+        self.status_label = tb.Label(main_frame, text="Idle", font=("Fira Sans", 12, "bold"), bootstyle=PRIMARY)
+        self.status_label.pack(pady=10, anchor="w")
+
+    def copy_code(self):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.output_box.get(1.0, tk.END))
+
+    def log_message(self, message):
+        self.log_box.insert(tk.END, message)
+        self.log_box.see(tk.END)
+
+    def stream_callback(self, chunk, source):
+        if source == "coder":
+            self.output_box.insert(tk.END, chunk)
+            self.output_box.see(tk.END)
+        elif source == "thinker":
+            self.thinker_box.insert(tk.END, chunk)
+            self.thinker_box.see(tk.END)
+        
+        self.log_box.insert(tk.END, chunk)
+        self.log_box.see(tk.END)
 
     def fill_dice_prompt(self):
         example = (
@@ -75,6 +119,11 @@ class LAPH_GUI:
         self.task_entry.insert(0, example)
 
     def run_task_thread(self):
+        self.run_button.config(state="disabled")
+        self.example_button.config(state="disabled")
+        self.log_box.delete(1.0, tk.END)
+        self.output_box.delete(1.0, tk.END)
+        self.thinker_box.delete(1.0, tk.END)
         threading.Thread(target=self.run_task, daemon=True).start()
 
     def run_task(self):
@@ -82,12 +131,20 @@ class LAPH_GUI:
         try:
             max_iters = int(self.max_iters_entry.get())
         except ValueError:
-            max_iters = 10  # Default to 10 if input is invalid
+            max_iters = 10
+            self.logger.log("Invalid max iterations value, defaulting to 10.")
+        
         self.status_label.config(text="Running...", bootstyle=WARNING)
-        self.output_box.delete(1.0, "end")
-        final_code = self.agent.run_task(task)
+        self.logger.log(f"Starting task with max {max_iters} iterations.")
+
+        final_code = self.agent.run_task(task, max_iters=max_iters, stream_callback=self.stream_callback)
+
         if final_code:
-            self.status_label.config(text="Success!", bootstyle=SUCCESS)
-            self.output_box.insert("end", final_code)
+            self.status_label.config(text="Success! ✨", bootstyle=SUCCESS)
+            self.logger.log("Task finished successfully.")
         else:
-            self.status_label.config(text="Failed after max iterations.", bootstyle=DANGER)
+            self.status_label.config(text="Failed to generate a working script. Try a different prompt or more iterations.", bootstyle=DANGER)
+            self.logger.log("Task failed. Maximum iterations reached.")
+        
+        self.run_button.config(state="normal")
+        self.example_button.config(state="normal")
