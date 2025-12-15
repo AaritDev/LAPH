@@ -69,6 +69,38 @@ class RepairLoop:
         # otherwise assume first block is code
         return fences[0], None
 
+    def _sanitize_code_for_run(self, code: str, tests: str | None):
+        """Return a (preamble, code, tests) tuple where preamble contains any auto-injected imports or seeds."""
+        preamble_lines = []
+
+        src = (code or "") + "\n" + (tests or "")
+
+        # If code uses regex but doesn't import re, add it
+        if ("re." in src or "re.match" in src or "re.search" in src) and "import re" not in code and "from re" not in code:
+            preamble_lines.append("import re")
+
+
+        # If code uses 'randint(' explicitly, ensure 'from random import randint' is present
+        if "randint(" in src and "from random import randint" not in code:
+            preamble_lines.append("from random import randint")
+        # Otherwise if random namespace is used, ensure 'import random' is present
+        elif ("random." in src or "random(" in src) and ("import random" not in code and "from random" not in code):
+            preamble_lines.append("import random")
+
+        # If tests are present and random is used anywhere, seed it for deterministic tests
+        if tests and ("random" in src or "randint(" in src):
+            preamble_lines.append("random.seed(0)")
+
+        # If we plan to seed random but didn't add a full 'import random', ensure it's present
+        if any(l.startswith("random.seed") for l in preamble_lines) and all(l != "import random" for l in preamble_lines):
+            # add import random at the beginning
+            preamble_lines.insert(0, "import random")
+
+        if preamble_lines:
+            preamble = "\n".join(preamble_lines) + "\n\n"
+            return preamble, code, tests
+        return "", code, tests
+
     def _extract_code_from_output(self, output: str) -> str:
         # If the model wrapped code in ``` fences, extract the first fenced block.
         import re
@@ -98,8 +130,15 @@ class RepairLoop:
             if tests:
                 run_payload = code + "\n\n" + tests
 
+            # Sanitize: auto-inject imports/seeds when obvious
+            preamble, run_code_sanitized, run_tests_sanitized = self._sanitize_code_for_run(code, tests)
+            if run_tests_sanitized:
+                full_payload = preamble + run_code_sanitized + "\n\n" + run_tests_sanitized
+            else:
+                full_payload = preamble + run_code_sanitized
+
             self.logger.log("--- Running Code ---")
-            stdout, stderr, exitcode = self.runner.run_code(run_payload)
+            stdout, stderr, exitcode = self.runner.run_code(full_payload)
 
             self.logger.log("--- Execution Result ---")
             self.logger.log("STDOUT:\n" + stdout)
