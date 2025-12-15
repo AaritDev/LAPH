@@ -25,3 +25,14 @@ def test_iteration_clamping():
     assert gui.max_iters_var.get() == 0
 
     root.destroy()
+
+
+def test_stream_callback_clears_and_shows_prompts():
+    root = tk.Tk()
+    root.withdraw()
+    gui = LAPH_GUI(root)
+    gui.stream_callback("Do X", "thinker_prompt")
+    assert "Thinker Prompt" in gui.thinker_box.get(1.0, tk.END)
+    gui.stream_callback("Spec details", "coder_prompt")
+    assert "# Spec" in gui.output_box.get(1.0, tk.END)
+    root.destroy()

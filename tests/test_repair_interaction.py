@@ -70,3 +70,11 @@ def test_repair_loop_interaction_cycle():
         parsed = json.loads(out[start:end+1])
     assert parsed
     assert parsed['actions'][0]['payload'] == 'hello'
+
+
+def test_generate_spec_parses_fenced_json():
+    rl = RepairLoop(None)
+    # Thinker returns a fenced JSON block with spec key
+    rl.models['thinker'] = FakeModel(["```json\n{\"spec\": \"Do the thing\"}\n```\n"])
+    spec = rl._generate_spec('task', None, None, None)
+    assert spec == 'Do the thing'

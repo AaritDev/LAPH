@@ -26,25 +26,70 @@ class RepairLoop:
     def _generate_spec(self, task, code, last_error, stream_callback):
         thinker_prompt = self.prompts.build_thinker(task, code, last_error)
         self.logger.log("--- Thinker Prompt ---\n" + thinker_prompt)
-        
-        spec = ""
+        # Inform UI about the prompt and start of generation
+        if stream_callback:
+            stream_callback(thinker_prompt, "thinker_prompt")
+            stream_callback(None, "thinker_start")
+
+        spec_output = ""
         self.logger.log("--- Thinker Output ---")
         for chunk in self.models['thinker'].generate(thinker_prompt):
-            spec += chunk
+            spec_output += chunk
             if stream_callback:
                 stream_callback(chunk, "thinker")
-        return spec
+
+        # signal end of thinker output
+        if stream_callback:
+            stream_callback(None, "thinker_end")
+
+        # Try to extract a JSON fenced block first, then fallback to raw text
+        import re, json
+        json_block = None
+        m = re.search(r"```json\s*([\s\S]*?)```", spec_output)
+        if m:
+            try:
+                parsed = json.loads(m.group(1))
+                json_block = parsed.get('spec') if isinstance(parsed, dict) else None
+            except Exception as e:
+                self.logger.log(f"[Thinker JSON parse error] {e}")
+
+        if json_block is None:
+            # Fallback: try to find a plain JSON object anywhere in the output
+            try:
+                start = spec_output.find('{')
+                end = spec_output.rfind('}')
+                if start != -1 and end != -1 and end > start:
+                    parsed = json.loads(spec_output[start:end+1])
+                    json_block = parsed.get('spec') if isinstance(parsed, dict) else None
+            except Exception as e:
+                self.logger.log(f"[Thinker JSON fallback parse error] {e}")
+
+        if json_block:
+            return json_block.strip()
+
+        # Last resort: return the raw text (strip any fenced ticks)
+        return self._extract_code_from_output(spec_output)
 
     def _generate_code(self, spec, code, last_error, stream_callback):
         coder_prompt = self.prompts.build_coder(spec, code, last_error)
         self.logger.log("--- Coder Prompt ---\n" + coder_prompt)
-        
-        new_code = ""
+        # Inform UI about the prompt and start of generation
+        if stream_callback:
+            stream_callback(coder_prompt, "coder_prompt")
+            stream_callback(None, "coder_start")
+
+        new_code_output = ""
         self.logger.log("--- Coder Output ---")
         for chunk in self.models['coder'].generate(coder_prompt):
-            new_code += chunk
+            new_code_output += chunk
             if stream_callback:
                 stream_callback(chunk, "coder")
+
+        # signal end of coder output
+        if stream_callback:
+            stream_callback(None, "coder_end")
+
+        new_code = new_code_output
         # Separate code and optional tests from fenced blocks
         code_piece, tests_piece = self._split_code_and_tests(new_code)
         cleaned = code_piece.strip()
@@ -153,21 +198,35 @@ class RepairLoop:
             interaction_prompt = self.prompts.build_thinker_interaction(task, code, stdout, stderr, exitcode)
             self.logger.log("--- Thinker Interaction Prompt ---\n" + interaction_prompt)
 
+            # stream prompt and start/end signals for UI
+            if stream_callback:
+                stream_callback(interaction_prompt, "thinker_prompt")
+                stream_callback(None, "thinker_start")
+
             interaction_output = ""
             for chunk in self.models['thinker'].generate(interaction_prompt):
                 interaction_output += chunk
                 if stream_callback:
                     stream_callback(chunk, "thinker")
 
-            # Try to parse JSON out of the thinker's output
+            if stream_callback:
+                stream_callback(None, "thinker_end")
+
+            # Try to parse JSON out of the thinker's output (prefer fenced json blocks)
             parsed = None
             try:
-                start = interaction_output.find('{')
-                end = interaction_output.rfind('}')
-                if start != -1 and end != -1 and end > start:
-                    parsed = json.loads(interaction_output[start:end+1])
+                import re
+                m = re.search(r"```json\s*([\s\S]*?)```", interaction_output)
+                if m:
+                    parsed = json.loads(m.group(1))
+                else:
+                    # fallback to any JSON object in the output
+                    start = interaction_output.find('{')
+                    end = interaction_output.rfind('}')
+                    if start != -1 and end != -1 and end > start:
+                        parsed = json.loads(interaction_output[start:end+1])
             except Exception as e:
-                self.logger.log(f"[Thinker parse error] {e}")
+                self.logger.log(f"[Thinker interaction parse error] {e}")
 
             if parsed:
                 actions = parsed.get('actions', [])
@@ -187,13 +246,13 @@ class RepairLoop:
                     if followup_spec:
                         spec = followup_spec
                         # generate a new code attempt with the followup spec
-                        code = self._generate_code(spec, code, last_error, stream_callback)
+                        code, tests = self._generate_code(spec, code, last_error, stream_callback)
                         continue
                 else:
                     # No input actions; if a followup_spec exists, use it
                     if followup_spec:
                         spec = followup_spec
-                        code = self._generate_code(spec, code, last_error, stream_callback)
+                        code, tests = self._generate_code(spec, code, last_error, stream_callback)
                         continue
 
             # Fallback: no usable interaction or followup, set last_error and retry with same loop

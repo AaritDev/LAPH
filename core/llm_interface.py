@@ -3,8 +3,10 @@ import requests
 import json
 
 class LLMInterface:
-    def __init__(self, model_name="qwen3:14b"):
+    def __init__(self, model_name="qwen3:14b", temperature: float = 0.0):
+        # default to deterministic outputs unless configured otherwise
         self.model_name = model_name
+        self.temperature = temperature
 
     def generate(self, prompt: str):
         """
@@ -15,7 +17,8 @@ class LLMInterface:
             payload = {
                 "model": self.model_name,
                 "prompt": prompt,
-                "stream": True
+                "stream": True,
+                "temperature": self.temperature
             }
             response = requests.post(url, json=payload, stream=True)
             response.raise_for_status()

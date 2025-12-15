@@ -70,7 +70,7 @@ class LAPH_GUI:
         w = 1400
         header_canvas.create_oval(-200, -120, 300, 220, fill="#0ea5a4", outline="", stipple="gray25")
         header_canvas.create_text(120, 28, text="L.A.P.H.", anchor="w", font=("Orbitron", 38, "bold"), fill="#7fffd4")
-        header_canvas.create_text(120, 58, text="Local Autonomous Programming Helper", anchor="w", font=("Segoe UI", 12, "italic"), fill="#9ad1e6")
+        header_canvas.create_text(120, 68, text="Local Autonomous Programming Helper", anchor="w", font=("Segoe UI", 12, "italic"), fill="#9ad1e6")
 
         # Input Frame
         input_frame = tb.Labelframe(main_frame, text="Your Task", padding=16, bootstyle="primary")
@@ -136,7 +136,7 @@ class LAPH_GUI:
         # Single copy button in the header area (replace previous action buttons)
         header_btns = tb.Frame(coder_frame, bootstyle="dark")
         header_btns.pack(fill="x", pady=(0, 6))
-        copy_header = tb.Button(header_btns, text="Copy", command=self.copy_code, bootstyle="info-outline")
+        copy_header = tb.Button(header_btns, text="Copy", command=self.copy_code, bootstyle="info-outline", width=10)
         copy_header.pack(side="right", padx=6)
         Tooltip(copy_header, "Copy the generated code to the clipboard")
 
@@ -246,17 +246,62 @@ class LAPH_GUI:
         self.root.after(120, self._animate_spinner)
 
     def log_message(self, message):
+        # Make separator messages stand out by adding an extra blank line after them
         self.log_box.insert(tk.END, message)
+        if '---' in message or '🎉' in message or '❌' in message:
+            self.log_box.insert(tk.END, "\n")
         self.log_box.see(tk.END)
 
     def stream_callback(self, chunk, source):
+        # Handle prompt markers and start/end signals so we only show the latest generation
+        if source == "thinker_prompt":
+            # show only latest thinker prompt
+            self.thinker_box.delete(1.0, tk.END)
+            self.thinker_box.insert(tk.END, "[Thinker Prompt]\n" + (chunk or ""))
+            self.thinker_box.see(tk.END)
+            return
+        if source == "coder_prompt":
+            # show the coder prompt/spec at the top of the code pane and clear previous code
+            self.output_box.delete(1.0, tk.END)
+            self.output_box.insert(tk.END, "# Spec:\n" + (chunk or "") + "\n\n")
+            self.output_box.see(tk.END)
+            return
+
+        if source == "thinker_start":
+            # start a new thinker output: clear previous output
+            self.thinker_box.delete(1.0, tk.END)
+            self.thinker_box.insert(tk.END, "[Thinker Output]\n")
+            self.thinker_box.see(tk.END)
+            return
+
+        if source == "thinker_end":
+            # end of thinker output; nothing else to do
+            return
+
+        if source == "coder_start":
+            # start a new coder output; ensure previous code is cleared (spec remains)
+            # remove any trailing ephemeral markers
+            self._on_text_change()
+            return
+
+        if source == "coder_end":
+            # format the final code and update line numbers
+            self._format_code()
+            return
+
         if source == "coder":
+            # insert chunked code output
             self.output_box.insert(tk.END, chunk)
             self.output_box.see(tk.END)
-        elif source == "thinker":
+            return
+
+        if source == "thinker":
+            # insert chunked thinker output
             self.thinker_box.insert(tk.END, chunk)
             self.thinker_box.see(tk.END)
-        
+            return
+
+        # Fallback: append to the logs only (avoid cluttering logs with every chunk)
         self.log_box.insert(tk.END, chunk)
         self.log_box.see(tk.END)
 

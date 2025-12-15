@@ -6,3 +6,4 @@ rich
 ttkbootstrap
 toml
 tk
+pytest
