@@ -69,8 +69,8 @@ class LAPH_GUI:
         # Draw a glowing arc
         w = 1400
         header_canvas.create_oval(-200, -120, 300, 220, fill="#0ea5a4", outline="", stipple="gray25")
-        header_canvas.create_text(120, 28, text="L.A.P.H.", anchor="w", font=("Orbitron", 38, "bold"), fill="#7fffd4")
-        header_canvas.create_text(120, 68, text="Local Autonomous Programming Helper", anchor="w", font=("Segoe UI", 12, "italic"), fill="#9ad1e6")
+        header_canvas.create_text(100, 34, text="L.A.P.H.", anchor="w", font=("Orbitron", 38, "bold"), fill="#7fffd4")
+        header_canvas.create_text(100, 74, text="Local Autonomous Programming Helper", anchor="w", font=("Segoe UI", 12, "italic"), fill="#9ad1e6")
 
         # Input Frame
         input_frame = tb.Labelframe(main_frame, text="Your Task", padding=16, bootstyle="primary")
