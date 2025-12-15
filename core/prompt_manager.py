@@ -3,6 +3,7 @@ class PromptManager:
     def __init__(self):
         self.prompts = {}
         self.prompts['thinker'] = self._load_prompt('prompts/thinker_prompt.txt')
+        self.prompts['thinker_interaction'] = self._load_prompt('prompts/thinker_interaction_prompt.txt')
         self.prompts['summariser'] = self._load_prompt('prompts/summariser_prompt.txt')
         self.prompts['vision'] = self._load_prompt('prompts/vision_prompt.txt')
         self.prompts['coder'] = self._load_prompt('prompts/coder_prompt.txt')
@@ -13,6 +14,9 @@ class PromptManager:
 
     def build_thinker(self, task, code=None, error=None):
         return self.prompts['thinker'] + f"\n\nTask: {task}\n" + (f"Previous code: {code}\n" if code else "") + (f"Error: {error}\n" if error else "")
+
+    def build_thinker_interaction(self, task, code=None, stdout=None, stderr=None, exitcode=None):
+        return self.prompts['thinker_interaction'] + f"\n\nTask: {task}\n" + (f"Previous code: {code}\n" if code else "") + (f"STDOUT: {stdout}\n" if stdout is not None else "") + (f"STDERR: {stderr}\n" if stderr is not None else "") + (f"Exitcode: {exitcode}\n" if exitcode is not None else "")
 
     def build_coder(self, spec, code=None, error=None):
         return self.prompts['coder'] + f"\n\nSpecification: {spec}\n" + (f"Previous code: {code}\n" if code else "") + (f"Error: {error}\n" if error else "")
