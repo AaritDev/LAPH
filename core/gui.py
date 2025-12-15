@@ -91,7 +91,7 @@ class LAPH_GUI:
         self.max_iters_entry.pack(side="left", padx=(0, 10))
         self.max_iters_entry.bind('<FocusOut>', self._on_iter_focus_out)
 
-        unlimited_button = tb.Button(options_frame, text="♾️ Unlimited", bootstyle="info", command=lambda: self.max_iters_var.set(60))
+        unlimited_button = tb.Button(options_frame, text="Unlimited", bootstyle="info", command=lambda: self.max_iters_var.set(60))
         unlimited_button.pack(side="left", padx=(0, 20))
 
         self.run_button = tb.Button(options_frame, text="🚀 Run Task", bootstyle=SUCCESS, command=self.run_task_thread)
