@@ -84,11 +84,14 @@ class LAPH_GUI:
         options_frame.pack(fill="x", expand=True)
 
         tb.Label(options_frame, text="Max Iterations:", font=("Segoe UI", 12), bootstyle="inverse-dark").pack(side="left", padx=(5,5))
-        self.max_iters_entry = tb.Entry(options_frame, width=10, font=("Fira Sans", 12))
-        self.max_iters_entry.insert(0, "10")
+        # enforce integer-only and range 0..60
+        self.max_iters_var = tk.IntVar(value=10)
+        vcmd = (self.root.register(self._validate_iter), '%P')
+        self.max_iters_entry = tb.Entry(options_frame, width=10, font=("Fira Sans", 12), textvariable=self.max_iters_var, validate='key', validatecommand=vcmd)
         self.max_iters_entry.pack(side="left", padx=(0, 10))
+        self.max_iters_entry.bind('<FocusOut>', self._on_iter_focus_out)
 
-        unlimited_button = tb.Button(options_frame, text="♾️ Unlimited", bootstyle="info", command=lambda: self.max_iters_entry.delete(0, "end") or self.max_iters_entry.insert(0, "60"))
+        unlimited_button = tb.Button(options_frame, text="♾️ Unlimited", bootstyle="info", command=lambda: self.max_iters_var.set(60))
         unlimited_button.pack(side="left", padx=(0, 20))
 
         self.run_button = tb.Button(options_frame, text="🚀 Run Task", bootstyle=SUCCESS, command=self.run_task_thread)
@@ -130,15 +133,12 @@ class LAPH_GUI:
         self.output_box.bind('<KeyRelease>', self._on_text_change)
         self.output_box.bind('<MouseWheel>', self._on_text_change)
 
-        # Bottom action buttons
-        actions_frame = tb.Frame(coder_frame, bootstyle="dark")
-        actions_frame.pack(fill="x", pady=(6, 0))
-        copy_button = tb.Button(actions_frame, text="Copy Code", command=self.copy_code, bootstyle="info-outline")
-        copy_button.pack(side="left", padx=6)
-        Tooltip(copy_button, "Copy the generated code to the clipboard")
-        format_button = tb.Button(actions_frame, text="✨ Format", bootstyle="info-outline", command=self._format_code)
-        format_button.pack(side="left", padx=6)
-        Tooltip(format_button, "Run a lightweight formatter on the code")
+        # Single copy button in the header area (replace previous action buttons)
+        header_btns = tb.Frame(coder_frame, bootstyle="dark")
+        header_btns.pack(fill="x", pady=(0, 6))
+        copy_header = tb.Button(header_btns, text="Copy", command=self.copy_code, bootstyle="info-outline")
+        copy_header.pack(side="right", padx=6)
+        Tooltip(copy_header, "Copy the generated code to the clipboard")
 
         # Log area
         log_frame = tb.Labelframe(paned_window, text="LLM Status & Execution", padding=10, bootstyle="info")
@@ -180,6 +180,35 @@ class LAPH_GUI:
         self.output_box.delete(1.0, tk.END)
         self.output_box.insert(tk.END, formatted)
         self._on_text_change()
+
+    def _validate_iter(self, proposed: str) -> bool:
+        """Validate iteration entry on each key press: allow empty or integer between 0 and 60."""
+        if proposed == "":
+            return True
+        try:
+            v = int(proposed)
+        except Exception:
+            return False
+        return 0 <= v <= 60
+
+    def _on_iter_focus_out(self, event=None):
+        """Clamp iterations to 0..60 on focus out."""
+        try:
+            v = int(self.max_iters_entry.get())
+        except Exception:
+            # fallback to variable value
+            try:
+                v = int(self.max_iters_var.get())
+            except Exception:
+                v = 10
+        if v < 0:
+            v = 0
+        if v > 60:
+            v = 60
+        self.max_iters_var.set(v)
+        # ensure the entry text matches the variable
+        self.max_iters_entry.delete(0, tk.END)
+        self.max_iters_entry.insert(0, str(v))
 
     def _on_text_change(self, event=None):
         # Update line numbers to match the content
@@ -251,10 +280,15 @@ class LAPH_GUI:
     def run_task(self):
         task = self.task_entry.get()
         try:
-            max_iters = int(self.max_iters_entry.get())
-        except ValueError:
+            max_iters = int(self.max_iters_var.get())
+        except Exception:
             max_iters = 10
             self.logger.log("Invalid max iterations value, defaulting to 10.")
+        # Enforce clamp in case of external change
+        if max_iters < 0:
+            max_iters = 0
+        if max_iters > 60:
+            max_iters = 60
         
         self.status_label.config(text="Running...", bootstyle=WARNING)
         self.logger.log(f"Starting task with max {max_iters} iterations.")
