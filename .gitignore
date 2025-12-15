@@ -5,3 +5,4 @@ state.txt
 .directory
 tests/__pycache__/
 venv/
+LOGS
