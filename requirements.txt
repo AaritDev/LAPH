@@ -1,3 +1,5 @@
+# Note: Tkinter is provided by the system package (e.g. `python3-tk`); it may not be installable via pip
+# The list below contains all Python packages required by the application
 requests
 psutil
 Pillow
@@ -5,5 +7,4 @@ pyautogui
 rich
 ttkbootstrap
 toml
-tk
 pytest

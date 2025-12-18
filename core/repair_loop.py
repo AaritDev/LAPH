@@ -1,4 +1,13 @@
 
+"""Core repair loop orchestration.
+
+This module contains the `RepairLoop` class which coordinates the iterative
+Thinker -> Coder -> Runner cycle. It asks the thinker for a specification,
+asks the coder to generate code, runs the code in a sandboxed runner, and
+feeds errors back into the cycle until a passing program is produced or the
+maximum iterations are exhausted.
+"""
+
 import os
 import time
 from core.llm_interface import LLMInterface
@@ -8,7 +17,13 @@ from core.logger import Logger
 import json
 
 class RepairLoop:
+    """Orchestrates the iterative repair cycle (Thinker -> Coder -> Runner -> Thinker)."""
     def __init__(self, logger: Logger, model_name="qwen3:14b"):
+        """Initialize LLM interfaces, runner and prompt manager.
+
+        Loads model names from `configs/models.toml` and instantiates role-specific
+        LLM interfaces used by the repair loop.
+        """
         # Load all models
         from core.llm_interface import LLMInterface
         import toml
@@ -22,8 +37,19 @@ class RepairLoop:
         self.runner = CodeRunner()
         self.prompts = PromptManager()
         self.logger = logger
+        # Provide a minimal no-op logger when `logger` is None for tests or simple runs
+        if self.logger is None:
+            class _NullLogger:
+                def log(self, *args, **kwargs):
+                    pass
+            self.logger = _NullLogger()
 
     def _generate_spec(self, task, code, last_error, stream_callback):
+        """Ask the thinker LLM to produce a specification for the given task.
+
+        Returns the spec string (preferably extracted from fenced JSON block) or
+        falls back to raw thinker text.
+        """
         thinker_prompt = self.prompts.build_thinker(task, code, last_error)
         self.logger.log("--- Thinker Prompt ---\n" + thinker_prompt)
         # Inform UI about the prompt and start of generation
@@ -71,6 +97,10 @@ class RepairLoop:
         return self._extract_code_from_output(spec_output)
 
     def _generate_code(self, spec, code, last_error, stream_callback):
+        """Ask the coder LLM to generate code based on `spec`.
+
+        Returns a tuple (cleaned_code, tests_piece) where `tests_piece` may be None.
+        """
         coder_prompt = self.prompts.build_coder(spec, code, last_error)
         self.logger.log("--- Coder Prompt ---\n" + coder_prompt)
         # Inform UI about the prompt and start of generation
@@ -147,6 +177,7 @@ class RepairLoop:
         return "", code, tests
 
     def _extract_code_from_output(self, output: str) -> str:
+        """Extract code from model output, preferring fenced ```python blocks."""
         # If the model wrapped code in ``` fences, extract the first fenced block.
         import re
         fence_match = re.search(r"```(?:python\n)?([\s\S]*?)```", output)
@@ -160,6 +191,14 @@ class RepairLoop:
         return output.strip()
 
     def run_task(self, task: str, max_iters=20, stream_callback=None):
+        """Top-level loop: attempt to synthesize and run code until success or max_iters.
+
+        For each iteration the method:
+        - asks the Thinker for a spec
+        - asks the Coder for code
+        - runs the code in a sandboxed runner
+        - invokes the Thinker to interact on failures and optionally provides followups
+        """
         code = None
         last_error = None
 

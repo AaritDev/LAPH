@@ -1,3 +1,18 @@
+"""GUI for L.A.P.H. — creates the main Tkinter/ttkbootstrap interface.
+
+This module defines the `LAPH_GUI` class which assembles the entire user interface:
+- Task input and options
+- Thinker output window
+- Generated code editor-like pane with line numbers
+- Log/Status area for LLM and runner messages
+
+It also contains a simple `Tooltip` helper used to show hover tooltips for buttons.
+
+The GUI components are styled with `ttkbootstrap` and connected to the `RepairLoop`
+agent to run tasks asynchronously.
+
+"""
+
 import ttkbootstrap as tb
 from ttkbootstrap.constants import PRIMARY, SUCCESS, DANGER, WARNING, INFO
 import threading
@@ -10,7 +25,14 @@ import time
 
 
 class Tooltip:
+    """Simple hover tooltip helper.
+
+    Attaches to a Tk widget and displays a small Toplevel label after a short delay.
+    Used sparingly to enrich the UI with contextual help for buttons and controls.
+    """
+
     def __init__(self, widget, text, delay=500):
+        """Attach the tooltip to `widget` and set hover delay in milliseconds."""
         self.widget = widget
         self.text = text
         self.delay = delay
@@ -20,9 +42,11 @@ class Tooltip:
         widget.bind("<Leave>", self.hide)
 
     def schedule(self, event=None):
+        """Schedule showing the tooltip after the configured delay."""
         self.id = self.widget.after(self.delay, self.show)
 
     def show(self):
+        """Create a small borderless Toplevel positioned near the widget and display text."""
         if self.tipwindow:
             return
         x = self.widget.winfo_rootx() + 20
@@ -34,6 +58,7 @@ class Tooltip:
         label.pack(ipadx=6, ipady=3)
 
     def hide(self, event=None):
+        """Cancel a scheduled show and destroy any visible tooltip window."""
         if self.id:
             self.widget.after_cancel(self.id)
             self.id = None
@@ -42,7 +67,14 @@ class Tooltip:
             self.tipwindow = None
 
 class LAPH_GUI:
+    """Main application GUI.
+
+    Responsible for building and managing all UI widgets and responding to user
+    actions (starting tasks, displaying streaming output, copying code, etc.)
+    """
+
     def __init__(self, root):
+        """Initialize GUI state, logger, and RepairLoop agent and populate widgets."""
         self.root = root
         self.root.title("L.A.P.H. — Local Autonomous Programming Helper")
         self.root.geometry("1400x900")
@@ -52,6 +84,7 @@ class LAPH_GUI:
         self.setup_widgets()
 
     def setup_widgets(self):
+        """Create and layout all UI widgets, panels and connect event handlers."""
         style = tb.Style("superhero")
 
         # Root background
@@ -159,10 +192,16 @@ class LAPH_GUI:
         self._spinner_index = 0
 
     def copy_code(self):
+        """Copy the contents of the generated code output to the clipboard."""
         self.root.clipboard_clear()
         self.root.clipboard_append(self.output_box.get(1.0, tk.END))
 
     def _format_code(self):
+        """Lightweight code formatter for the generated code pane.
+
+        Strips trailing spaces and collapses sequences of blank lines to improve
+        readability before showing final output to the user.
+        """
         # Lightweight formatting: strip trailing spaces and collapse multiple blank lines
         txt = self.output_box.get(1.0, tk.END)
         lines = [l.rstrip() for l in txt.splitlines()]
@@ -211,10 +250,12 @@ class LAPH_GUI:
         self.max_iters_entry.insert(0, str(v))
 
     def _on_text_change(self, event=None):
+        """Debounce and schedule a line-number update triggered by text or mouse events."""
         # Update line numbers to match the content
         self.root.after(5, self._update_line_numbers)
 
     def _update_line_numbers(self):
+        """Redraw the left-hand line number canvas to reflect the editor content."""
         self.linenos.delete("all")
         i = self.output_box.index("@0,0")
         while True:
@@ -227,17 +268,20 @@ class LAPH_GUI:
             i = self.output_box.index(f"{i} +1line")
 
     def _start_spinner(self):
+        """Start the progress spinner and kick off the animated indicator."""
         if not self._spinner_running:
             self._spinner_running = True
             self.progress.start(10)
             self._animate_spinner()
 
     def _stop_spinner(self):
+        """Stop the progress spinner and animation."""
         if self._spinner_running:
             self._spinner_running = False
             self.progress.stop()
 
     def _animate_spinner(self):
+        """Animate a simple unicode spinner by rotating through frames on a timer."""
         if not self._spinner_running:
             return
         frames = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"]
@@ -246,6 +290,7 @@ class LAPH_GUI:
         self.root.after(120, self._animate_spinner)
 
     def log_message(self, message):
+        """Append a log message into the UI log pane, adding spacing for separators."""
         # Make separator messages stand out by adding an extra blank line after them
         self.log_box.insert(tk.END, message)
         if '---' in message or '🎉' in message or '❌' in message:
@@ -253,6 +298,12 @@ class LAPH_GUI:
         self.log_box.see(tk.END)
 
     def stream_callback(self, chunk, source):
+        """Handle streaming chunks from LLMs and update the appropriate UI pane.
+
+        `source` indicates the origin or marker such as 'thinker', 'coder', 'coder_start',
+        'thinker_prompt', etc. This method routes incoming chunks to the thinker,
+        coder, or log panes and handles start/end events.
+        """
         # Handle prompt markers and start/end signals so we only show the latest generation
         if source == "thinker_prompt":
             # show only latest thinker prompt
@@ -260,6 +311,7 @@ class LAPH_GUI:
             self.thinker_box.insert(tk.END, "[Thinker Prompt]\n" + (chunk or ""))
             self.thinker_box.see(tk.END)
             return
+
         if source == "coder_prompt":
             # show the coder prompt/spec at the top of the code pane and clear previous code
             self.output_box.delete(1.0, tk.END)
@@ -289,6 +341,40 @@ class LAPH_GUI:
             self._format_code()
             return
 
+        if source == "coder":
+            # insert chunked code output
+            self.output_box.insert(tk.END, chunk)
+            self.output_box.see(tk.END)
+            return
+
+        if source == "thinker":
+            # insert chunked thinker output
+            self.thinker_box.insert(tk.END, chunk)
+            self.thinker_box.see(tk.END)
+            return
+
+        # Fallback: append to the logs only (avoid cluttering logs with every chunk)
+        self.log_box.insert(tk.END, chunk)
+        self.log_box.see(tk.END)
+
+    def fill_dice_prompt(self):
+        """Place a useful dice-rolling example into the task entry for quick demos."""
+        example = (
+            "a program that makes a simple dice roller where you can choose any dice with any amount of sides and then roll them, "
+            "maybe add extra dice like two 20 sided dices or 1 four sided dice, and 2 six sided dices, all rolling together "
+            "(and maybe total all the dices values and also make it so whatever the dice rolls to you can add a custom value to it)"
+        )
+        self.task_entry.delete(0, "end")
+        self.task_entry.insert(0, example)
+
+    def run_task_thread(self):
+        """Start `run_task` in a background thread and disable UI controls while running."""
+        self.run_button.config(state="disabled")
+        self.example_button.config(state="disabled")
+        self.log_box.delete(1.0, tk.END)
+        self.output_box.delete(1.0, tk.END)
+        self.thinker_box.delete(1.0, tk.END)
+        threading.Thread(target=self.run_task, daemon=True).start()
         if source == "coder":
             # insert chunked code output
             self.output_box.insert(tk.END, chunk)

@@ -1,3 +1,9 @@
+"""Tests that verify the sanitization layer injects imports and seeds.
+
+These ensure that obvious missing imports (like `re` or `random`) and deterministic
+seeding for tests are applied before executing generated payloads.
+"""
+
 from core.repair_loop import RepairLoop
 
 

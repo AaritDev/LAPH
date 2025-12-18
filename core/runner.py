@@ -1,4 +1,11 @@
 
+"""Sandboxed code execution utilities.
+
+`CodeRunner` executes Python code in temporary files while imposing resource
+limits (CPU time and address space) to reduce the risk of runaway executions.
+The implementation is intentionally minimal and synchronous for simplicity.
+"""
+
 import subprocess
 import tempfile
 import os
@@ -8,6 +15,7 @@ import shlex
 import json
 
 class CodeRunner:
+    """Execute and interact with Python code payloads in a temporary sandbox."""
     def run_code(self, code: str):
         """
         Execute Python code in a temporary file with resource limits.
@@ -17,6 +25,10 @@ class CodeRunner:
             temp_path = f.name
 
         def set_limits():
+            """Apply resource limits to the child process before execution.
+
+            Limits CPU seconds and address space to reduce the risk of runaway jobs.
+            """
             # Limit CPU time to 5 seconds
             resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
             # Limit memory to 256MB

@@ -97,7 +97,7 @@ cat > "$DESKTOP_FILE" <<EOF
 Type=Application
 Name=L.A.P.H.
 Comment=Local Autonomous Programming Helper
-Exec=laph
+Exec="$APP_DIR/venv/bin/python" "$APP_DIR/main.py"
 Icon=$APP_ID
 Terminal=true
 Categories=Development;Utility;
@@ -129,5 +129,5 @@ fi
 
 echo
 echo "✅ $APP_NAME installed successfully"
-echo "→ Launch from app menu or run: laph"
+echo "→ Launch from app menu or run: \"$APP_DIR/venv/bin/python $APP_DIR/main.py\" (or run `laph` if your PATH and desktop support it)"
 echo "→ Uninstall by deleting: $APP_DIR, $DESKTOP_FILE, $ICON_DIR/$APP_ID.png"

@@ -1,3 +1,9 @@
+"""Tests for the repair loop orchestration and sandboxed runner.
+
+These tests exercise parsing of fenced code and JSON, interactive runner inputs,
+and the behavior of the repair loop when models yield particular outputs.
+"""
+
 import json
 import time
 from core.repair_loop import RepairLoop

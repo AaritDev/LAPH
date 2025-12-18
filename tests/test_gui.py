@@ -1,3 +1,9 @@
+"""GUI unit tests (smoke and basic behavior checks).
+
+These tests instantiate `LAPH_GUI` in a hidden Tk root to assert basic
+behaviors (widget creation, iteration clamping, and streaming callbacks).
+"""
+
 import tkinter as tk
 from core.gui import LAPH_GUI
 
