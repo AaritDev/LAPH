@@ -99,7 +99,7 @@ Name=L.A.P.H.
 Comment=Local Autonomous Programming Helper
 Exec=laph
 Icon=$APP_ID
-Terminal=false
+Terminal=true
 Categories=Development;Utility;
 StartupNotify=true
 EOF
