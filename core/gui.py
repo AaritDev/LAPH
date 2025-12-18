@@ -375,38 +375,6 @@ class LAPH_GUI:
         self.output_box.delete(1.0, tk.END)
         self.thinker_box.delete(1.0, tk.END)
         threading.Thread(target=self.run_task, daemon=True).start()
-        if source == "coder":
-            # insert chunked code output
-            self.output_box.insert(tk.END, chunk)
-            self.output_box.see(tk.END)
-            return
-
-        if source == "thinker":
-            # insert chunked thinker output
-            self.thinker_box.insert(tk.END, chunk)
-            self.thinker_box.see(tk.END)
-            return
-
-        # Fallback: append to the logs only (avoid cluttering logs with every chunk)
-        self.log_box.insert(tk.END, chunk)
-        self.log_box.see(tk.END)
-
-    def fill_dice_prompt(self):
-        example = (
-            "a program that makes a simple dice roller where you can choose any dice with any amount of sides and then roll them, "
-            "maybe add extra dice like two 20 sided dices or 1 four sided dice, and 2 six sided dices, all rolling together "
-            "(and maybe total all the dices values and also make it so whatever the dice rolls to you can add a custom value to it)"
-        )
-        self.task_entry.delete(0, "end")
-        self.task_entry.insert(0, example)
-
-    def run_task_thread(self):
-        self.run_button.config(state="disabled")
-        self.example_button.config(state="disabled")
-        self.log_box.delete(1.0, tk.END)
-        self.output_box.delete(1.0, tk.END)
-        self.thinker_box.delete(1.0, tk.END)
-        threading.Thread(target=self.run_task, daemon=True).start()
 
     def run_task(self):
         task = self.task_entry.get()
