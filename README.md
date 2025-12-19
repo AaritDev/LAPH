@@ -69,6 +69,5 @@ python3 main.py
 
 # 📅 Date Started: 17 November 2025
 
-## 🛠 Automatic sanitization
-- The repair loop auto-injects common missing imports (e.g., `re`, `random`, `from random import randint`) when the generated code appears to use them but doesn't import them.
-- If tests are present and `random` is used, the runner seeds `random.seed(0)` before running tests to make them deterministic.
+## DISCLAIMER
+This project uses AI generated imagery for the logo (./logo.png) and generates code autonomously, the authors are not responsible for gerated output
