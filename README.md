@@ -1,4 +1,4 @@
-![banner](logo.png?raw=true)
+![banner](laph.png?raw=true)
 ### Local Autonomous Programming Helper
 
 ## 🧠 What L.A.P.H. Actually Is (Full Corporate Jargon Mode):
