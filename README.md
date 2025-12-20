@@ -1,5 +1,5 @@
 ![banner](laph.png?raw=true)
-### Local Autonomous Programming Helper
+# Local Autonomous Programming Helper
 
 ## 🧠 What L.A.P.H. Actually Is (Full Corporate Jargon Mode):
 A locally-hosted, multi-agent, self-reflexive autonomous programming framework capable of continuous code generation, execution, validation, and correction through iterative feedback cycles, leveraging decentralized LLM orchestration, dynamic error-driven model routing, and fully offline compute workflows.
@@ -63,7 +63,7 @@ Configure your model endpoint in:
 After everything is done to run the program just search LAPH in your application launcher or application menu,
 the program data is all stored in userspace or ~/home/$HOME so not systemwide.
 
-# 📅 Date Started: 17 November 2025
+### 📅 Date Started: 17 November 2025
 
 ## DISCLAIMER
 This project uses AI generated imagery for the logo (./logo.png) and generates code autonomously, the authors are not responsible for gerated output
