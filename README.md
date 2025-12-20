@@ -1,4 +1,4 @@
-![banner](banner.png?raw=true)
+![banner](logo.png?raw=true)
 ### Local Autonomous Programming Helper
 
 ## 🧠 What L.A.P.H. Actually Is (Full Corporate Jargon Mode):
@@ -41,31 +41,27 @@ Think of it as your local junior developer intern that never complains, never sl
    Generates a persistent activity log via a super-tiny 1B summarizer
 
 ## ⚡ Quickstart:
-Install deps:
+Install prerquisites:
+ 1. Python 3.11
+ 2. The latest ollama version installed
+ 3. Internet
+
+### Also these are the requirments:
+ 1. atleast a 8GB VRAM GPU
+ 2. 16GB RAM
+ 3. A CPU that wont bottleneck the GPU, I dont know muich about CPUs
+
+Install:
 ``` sh
-pip install -r requirements.txt
-```
-Pull the default models (recommended):
-``` sh
-ollama pull qwen3:14b
-```
-``` sh
-ollama pull qwen3:4b
-```
-```sh
-ollama pull qwen3-vl:8b
-```
-``` sh
-ollama pull qwen2.5-coder:7b-instruct
+chmod 644 ./install.sh
+./install.sh
 ```
 
 Configure your model endpoint in:
 "core/llm_interface.py"
 
-Run the agent:
-``` sh
-python3 main.py
-```
+After everything is done to run the program just search LAPH in your application launcher or application menu,
+the program data is all stored in userspace or ~/home/$HOME so not systemwide.
 
 # 📅 Date Started: 17 November 2025
 
