@@ -1,4 +1,3 @@
-
 """Lightweight LLM interface for local HTTP-backed models.
 
 This small wrapper sends prompts to a local Ollama-style HTTP API and streams
@@ -9,8 +8,10 @@ progressive UI updates.
 import requests
 import json
 
+
 class LLMInterface:
     """Send prompts to a local LLM endpoint and yield streamed responses."""
+
     def __init__(self, model_name="qwen3:14b", temperature: float = 0.0):
         """Create a new interface instance for a named model and temperature."""
         # default to deterministic outputs unless configured otherwise
@@ -27,11 +28,11 @@ class LLMInterface:
                 "model": self.model_name,
                 "prompt": prompt,
                 "stream": True,
-                "temperature": self.temperature
+                "temperature": self.temperature,
             }
             response = requests.post(url, json=payload, stream=True)
             response.raise_for_status()
-            
+
             full_response = ""
             for line in response.iter_lines():
                 if line:
