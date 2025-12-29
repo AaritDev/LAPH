@@ -53,7 +53,7 @@ Install prerquisites:
 
 Install:
 ``` sh
-chmod 644 ./install.sh
+chmod +x ./install.sh
 ./install.sh
 ```
 
