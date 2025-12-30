@@ -112,11 +112,8 @@ chmod 644 "$DESKTOP_FILE"
 if command -v ollama >/dev/null 2>&1; then
   if [[ -f "$APP_DIR/configs/models.toml" ]]; then
     echo "==> Pulling Ollama models"
-    grep 'name' "$APP_DIR/configs/models.toml" \
-      | sed -E 's/.*=\s*"([^"]+)".*/\1/' \
-      | while read -r model; do
-          ollama pull "$model" || echo "⚠️ Failed: $model"
-        done
+    ollama pull qwen2.5-coder:7b-instruct
+    ollama pull qwen3:14b
   fi
 fi
 
