@@ -49,7 +49,7 @@ Install prerquisites:
 ### Also these are the requirments:
  1. atleast a 8GB VRAM GPU
  2. 16GB RAM
- 3. A CPU that wont bottleneck the GPU, I dont know muich about CPUs
+ 3. A CPU that wont bottleneck the GPU, I dont know much about CPUs
 
 Install:
 ``` sh
