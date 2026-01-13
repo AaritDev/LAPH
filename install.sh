@@ -97,7 +97,7 @@ cat >"$DESKTOP_FILE" <<EOF
 Type=Application
 Name=L.A.P.H.
 Comment=Local Autonomous Programming Helper
-Exec="$APP_DIR/main.py"
+Exec="/home/aarit/.local/bin/LAPH/venv/bin/python /home/aarit/.local/bin/LAPH/main.py"
 Icon="$APP_DIR/laph.png"
 Terminal=true
 Categories=Development;Utility;
