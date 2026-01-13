@@ -68,7 +68,7 @@ deactivate
 # Launcher script (the ONLY executable entrypoint)
 # ------------------------------------------------------------
 echo "==> Creating launcher"
-cat > "$APP_DIR/laph" <<'EOF'
+cat >"$APP_DIR/laph" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
@@ -92,13 +92,13 @@ fi
 # Desktop entry
 # ------------------------------------------------------------
 echo "==> Creating desktop entry"
-cat > "$DESKTOP_FILE" <<EOF
+cat >"$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
 Name=L.A.P.H.
 Comment=Local Autonomous Programming Helper
-Exec="$APP_DIR/venv/bin/python" "$APP_DIR/main.py"
-Icon=$APP_ID
+Exec="$APP_DIR/main.py"
+Icon="$APP_DIR/laph.png"
 Terminal=true
 Categories=Development;Utility;
 StartupNotify=true
@@ -126,5 +126,5 @@ fi
 
 echo
 echo "✅ $APP_NAME installed successfully"
-echo "→ Launch from app menu or run: \"$APP_DIR/venv/bin/python $APP_DIR/main.py\" (or run `laph` if your PATH and desktop support it)"
+echo "→ Launch from app menu or run: \"$APP_DIR/venv/bin/python $APP_DIR/main.py\" (or run $(laph) if your PATH and desktop support it)"
 echo "→ Uninstall by deleting: $APP_DIR, $DESKTOP_FILE, $ICON_DIR/$APP_ID.png"
