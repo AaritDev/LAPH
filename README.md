@@ -44,10 +44,10 @@ Think of it as your local junior developer intern that never complains, never sl
 Install prerquisites:
  1. Python 3.11
  2. The latest ollama version installed
- 3. Internet
+ 3. Internet (required **only** for initial model download and setup)
 
 ### Also these are the requirments:
- 1. atleast a 8GB VRAM GPU
+ 1. atleast a 6GB VRAM GPU
  2. 16GB RAM
  3. A CPU that wont bottleneck the GPU, I dont know much about CPUs
 
@@ -66,4 +66,4 @@ the program data is all stored in userspace or ~/home/$HOME so not systemwide.
 ### 📅 Date Started: 17 November 2025
 
 ## DISCLAIMER
-This project uses AI generated imagery for the logo (./logo.png) and generates code autonomously, the authors are not responsible for gerated output
+This project uses AI generated imagery for the logo (./logo.png) and generates code autonomously, the authors are not responsible for generated output
