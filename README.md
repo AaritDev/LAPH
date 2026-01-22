@@ -46,10 +46,10 @@ Install prerquisites:
  2. The latest ollama version installed
  3. Internet (required **only** for initial model download and setup)
 
-### Also these are the requirments:
- 1. atleast a 6GB VRAM GPU
+### Also these are the requirements:
+ 1. at least a 6GB VRAM GPU
  2. 16GB RAM
- 3. A CPU that wont bottleneck the GPU, I dont know much about CPUs
+ 3. A CPU that won't   bottleneck the GPU, I dont know much about CPUs
 
 Install:
 ``` sh
