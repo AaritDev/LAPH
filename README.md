@@ -2,7 +2,7 @@
 # Local Autonomous Programming Helper
 
 ## 🧠 What L.A.P.H. Actually Is (Full Corporate Jargon Mode):
-A locally-hosted, multi-agent, self-reflexive autonomous programming framework capable of continuous code generation, execution, validation, and correction through iterative feedback cycles, leveraging decentralized LLM orchestration, dynamic error-driven model routing, and fully offline compute workflows.
+An offline, multi-agent coding system that writes, runs, debugs, and fixes its own code using self-reflection and error-aware model routing.
 
 ## 🍼 What That Means in Human Words:
 A lil AI homie who writes code, runs it, sees if it exploded, learns from the explosion, and tries again.
