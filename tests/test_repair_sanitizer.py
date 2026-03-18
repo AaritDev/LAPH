@@ -14,14 +14,14 @@ def test_sanitize_injects_imports_and_seed():
     tests = "assert roll_dice('3d6') >= 1"
 
     preamble, c, t = rl._sanitize_code_for_run(code, tests)
-    assert 'import re' in preamble
-    assert 'import random' in preamble
-    assert 'random.seed(0)' in preamble
+    assert "import re" in preamble
+    assert "import random" in preamble
+    assert "random.seed(0)" in preamble
 
     # Running the full payload should not raise NameError for re or randint
     full = preamble + c + "\n\n" + t
     stdout, stderr, exitcode = rl.runner.run_code(full)
-    assert 'NameError' not in stderr
+    assert "NameError" not in stderr
 
 
 def test_sanitizer_prevents_nameerror_with_coder_style_tests():
@@ -33,4 +33,4 @@ def test_sanitizer_prevents_nameerror_with_coder_style_tests():
     full = preamble + c + "\n\n" + t
     stdout, stderr, exitcode = rl.runner.run_code(full)
     # Should not error with NameError (might still fail assertion)
-    assert 'NameError' not in stderr
+    assert "NameError" not in stderr

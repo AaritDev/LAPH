@@ -1,38 +1,51 @@
+import json
+import os
+import sys
 
 import pytest
-import sys
-import os
 
 # Add the project root to sys.path so we can import core
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import requests
 from core.llm_interface import LLMInterface
 
-def test_llm_simple_code_generation():
+
+def test_llm_simple_code_generation(monkeypatch):
+    """Ensure the LLM interface streams model output correctly.
+
+    This test mocks the HTTP response so it does not require a running Ollama
+    instance.
     """
-    Test that the LLMInterface can connect to the local model and generate code.
-    This test requires a local Ollama instance running on port 11434.
-    """
+
+    def fake_post(url, **kwargs):
+        class FakeResponse:
+            def raise_for_status(self):
+                return None
+
+            def iter_lines(self):
+                # Simulate streamed JSON response lines from Ollama
+                yield json.dumps(
+                    {"response": "def add_numbers(a, b):\n    return a + b\n"}
+                ).encode()
+
+        return FakeResponse()
+
+    monkeypatch.setattr(requests, "post", fake_post)
+
     llm = LLMInterface(model_name="qwen2.5:14b", temperature=0.1)
     prompt = "Write a simple Python function named 'add_numbers' that takes two arguments and returns their sum. Only return the code."
-    
-    print(f"\nSending prompt: {prompt}")
-    
-    full_response = ""
-    try:
-        # consume the generator
-        for chunk in llm.generate(prompt):
-            full_response += chunk
-            # print(chunk, end="", flush=True) # Optional: print to stdout to see progress
-            
-    except Exception as e:
-        pytest.fail(f"LLM generation failed (is Ollama running?): {e}")
 
-    print(f"\n\nReceived response:\n{full_response}")
+    full_response = ""
+    for chunk in llm.generate(prompt):
+        full_response += chunk
 
     assert full_response.strip(), "LLM response should not be empty"
-    assert "def add_numbers" in full_response, "Response should likely contain the function definition"
+    assert (
+        "def add_numbers" in full_response
+    ), "Response should likely contain the function definition"
     assert "[LLM ERROR]" not in full_response, f"LLM returned an error: {full_response}"
+
 
 if __name__ == "__main__":
     # Allow running this script directly

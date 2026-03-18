@@ -54,7 +54,16 @@ class Tooltip:
         self.tipwindow = tw = tk.Toplevel(self.widget)
         tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{x}+{y}")
-        label = tk.Label(tw, text=self.text, justify=tk.LEFT, background="#2b2b2b", fg="#dcdcdc", relief=tk.SOLID, borderwidth=1, font=("Segoe UI", 9))
+        label = tk.Label(
+            tw,
+            text=self.text,
+            justify=tk.LEFT,
+            background="#2b2b2b",
+            fg="#dcdcdc",
+            relief=tk.SOLID,
+            borderwidth=1,
+            font=("Segoe UI", 9),
+        )
         label.pack(ipadx=6, ipady=3)
 
     def hide(self, event=None):
@@ -65,6 +74,7 @@ class Tooltip:
         if self.tipwindow:
             self.tipwindow.destroy()
             self.tipwindow = None
+
 
 class LAPH_GUI:
     """Main application GUI.
@@ -97,41 +107,88 @@ class LAPH_GUI:
         # Futuristic header with subtle glow
         title_frame = tb.Frame(main_frame, bootstyle="dark")
         title_frame.pack(pady=(0, 12), fill="x")
-        header_canvas = tk.Canvas(title_frame, height=96, bg="#071426", highlightthickness=0)
+        header_canvas = tk.Canvas(
+            title_frame, height=96, bg="#071426", highlightthickness=0
+        )
         header_canvas.pack(fill="x", expand=True)
         # Draw a glowing arc
         w = 1400
-        header_canvas.create_oval(-200, -120, 300, 220, fill="#0ea5a4", outline="", stipple="gray25")
-        header_canvas.create_text(100, 34, text="L.A.P.H.", anchor="w", font=("Orbitron", 38, "bold"), fill="#7fffd4")
-        header_canvas.create_text(100, 74, text="Local Autonomous Programming Helper", anchor="w", font=("Segoe UI", 12, "italic"), fill="#9ad1e6")
+        header_canvas.create_oval(
+            -200, -120, 300, 220, fill="#0ea5a4", outline="", stipple="gray25"
+        )
+        header_canvas.create_text(
+            100,
+            34,
+            text="L.A.P.H.",
+            anchor="w",
+            font=("Orbitron", 38, "bold"),
+            fill="#7fffd4",
+        )
+        header_canvas.create_text(
+            100,
+            74,
+            text="Local Autonomous Programming Helper",
+            anchor="w",
+            font=("Segoe UI", 12, "italic"),
+            fill="#9ad1e6",
+        )
 
         # Input Frame
-        input_frame = tb.Labelframe(main_frame, text="Your Task", padding=16, bootstyle="primary")
+        input_frame = tb.Labelframe(
+            main_frame, text="Your Task", padding=16, bootstyle="primary"
+        )
         input_frame.pack(fill="x", pady=(0, 16))
 
         self.task_entry = tb.Entry(input_frame, width=70, font=("Fira Sans", 14))
         self.task_entry.pack(pady=10, padx=5, ipady=10, fill="x", expand=True)
-        
+
         # Options Frame
         options_frame = tb.Frame(input_frame, bootstyle="dark")
         options_frame.pack(fill="x", expand=True)
 
-        tb.Label(options_frame, text="Max Iterations:", font=("Segoe UI", 12), bootstyle="inverse-dark").pack(side="left", padx=(5,5))
+        tb.Label(
+            options_frame,
+            text="Max Iterations:",
+            font=("Segoe UI", 12),
+            bootstyle="inverse-dark",
+        ).pack(side="left", padx=(5, 5))
         # enforce integer-only and range 0..60
         self.max_iters_var = tk.IntVar(value=10)
-        vcmd = (self.root.register(self._validate_iter), '%P')
-        self.max_iters_entry = tb.Entry(options_frame, width=10, font=("Fira Sans", 12), textvariable=self.max_iters_var, validate='key', validatecommand=vcmd)
+        vcmd = (self.root.register(self._validate_iter), "%P")
+        self.max_iters_entry = tb.Entry(
+            options_frame,
+            width=10,
+            font=("Fira Sans", 12),
+            textvariable=self.max_iters_var,
+            validate="key",
+            validatecommand=vcmd,
+        )
         self.max_iters_entry.pack(side="left", padx=(0, 10))
-        self.max_iters_entry.bind('<FocusOut>', self._on_iter_focus_out)
+        self.max_iters_entry.bind("<FocusOut>", self._on_iter_focus_out)
 
-        unlimited_button = tb.Button(options_frame, text="Unlimited", bootstyle="info", command=lambda: self.max_iters_var.set(60))
+        unlimited_button = tb.Button(
+            options_frame,
+            text="Unlimited",
+            bootstyle="info",
+            command=lambda: self.max_iters_var.set(60),
+        )
         unlimited_button.pack(side="left", padx=(0, 20))
 
-        self.run_button = tb.Button(options_frame, text="🚀 Run Task", bootstyle=SUCCESS, command=self.run_task_thread)
+        self.run_button = tb.Button(
+            options_frame,
+            text="🚀 Run Task",
+            bootstyle=SUCCESS,
+            command=self.run_task_thread,
+        )
         self.run_button.pack(side="right", padx=5)
         Tooltip(self.run_button, "Start the repair loop and generate code")
-        
-        self.example_button = tb.Button(options_frame, text="🎲 Dice Roller Example", bootstyle=WARNING, command=self.fill_dice_prompt)
+
+        self.example_button = tb.Button(
+            options_frame,
+            text="🎲 Dice Roller Example",
+            bootstyle=WARNING,
+            command=self.fill_dice_prompt,
+        )
         self.example_button.pack(side="right", padx=5)
         Tooltip(self.example_button, "Fill the task box with an example prompt")
 
@@ -140,52 +197,102 @@ class LAPH_GUI:
         paned_window.pack(fill="both", expand=True, pady=(10, 0))
 
         # Left Paned Window for Thinker and Coder
-        left_paned_window = tb.Panedwindow(paned_window, orient="vertical", bootstyle="dark")
+        left_paned_window = tb.Panedwindow(
+            paned_window, orient="vertical", bootstyle="dark"
+        )
         paned_window.add(left_paned_window, weight=1)
-        
+
         # Thinker area
-        thinker_frame = tb.Labelframe(left_paned_window, text="Thinker Output", padding=10, bootstyle="info")
+        thinker_frame = tb.Labelframe(
+            left_paned_window, text="Thinker Output", padding=10, bootstyle="info"
+        )
         left_paned_window.add(thinker_frame, weight=1)
-        self.thinker_box = scrolledtext.ScrolledText(thinker_frame, width=100, height=10, font=("Fira Mono", 11), bg="#0b1720", fg="#9bd6e3", insertbackground="#9bd6e3", borderwidth=0, relief="flat")
+        self.thinker_box = scrolledtext.ScrolledText(
+            thinker_frame,
+            width=100,
+            height=10,
+            font=("Fira Mono", 11),
+            bg="#0b1720",
+            fg="#9bd6e3",
+            insertbackground="#9bd6e3",
+            borderwidth=0,
+            relief="flat",
+        )
         self.thinker_box.pack(pady=5, fill="both", expand=True)
 
         # Coder area
-        coder_frame = tb.Labelframe(left_paned_window, text="Generated Code", padding=8, bootstyle="success")
+        coder_frame = tb.Labelframe(
+            left_paned_window, text="Generated Code", padding=8, bootstyle="success"
+        )
         left_paned_window.add(coder_frame, weight=2)
         # Create an editor-like area with line numbers
         editor_outer = tb.Frame(coder_frame, bootstyle="dark")
         editor_outer.pack(fill="both", expand=True, pady=5)
 
-        self.linenos = tk.Canvas(editor_outer, width=48, bg="#071426", highlightthickness=0)
+        self.linenos = tk.Canvas(
+            editor_outer, width=48, bg="#071426", highlightthickness=0
+        )
         self.linenos.pack(side="left", fill="y")
 
-        self.output_box = scrolledtext.ScrolledText(editor_outer, width=100, height=15, font=("Fira Code", 12), bg="#071426", fg="#cfeffc", insertbackground="#cfeffc", borderwidth=0, relief="flat")
+        self.output_box = scrolledtext.ScrolledText(
+            editor_outer,
+            width=100,
+            height=15,
+            font=("Fira Code", 12),
+            bg="#071426",
+            fg="#cfeffc",
+            insertbackground="#cfeffc",
+            borderwidth=0,
+            relief="flat",
+        )
         self.output_box.pack(side="left", fill="both", expand=True)
 
         # line number update bindings
-        self.output_box.bind('<KeyRelease>', self._on_text_change)
-        self.output_box.bind('<MouseWheel>', self._on_text_change)
+        self.output_box.bind("<KeyRelease>", self._on_text_change)
+        self.output_box.bind("<MouseWheel>", self._on_text_change)
 
         # Single copy button in the header area (replace previous action buttons)
         header_btns = tb.Frame(coder_frame, bootstyle="dark")
         header_btns.pack(fill="x", pady=(0, 6))
-        copy_header = tb.Button(header_btns, text="Copy", command=self.copy_code, bootstyle="info-outline", width=10)
+        copy_header = tb.Button(
+            header_btns,
+            text="Copy",
+            command=self.copy_code,
+            bootstyle="info-outline",
+            width=10,
+        )
         copy_header.pack(side="right", padx=6)
         Tooltip(copy_header, "Copy the generated code to the clipboard")
 
         # Log area
-        log_frame = tb.Labelframe(paned_window, text="LLM Status & Execution", padding=10, bootstyle="info")
+        log_frame = tb.Labelframe(
+            paned_window, text="LLM Status & Execution", padding=10, bootstyle="info"
+        )
         paned_window.add(log_frame, weight=1)
-        self.log_box = scrolledtext.ScrolledText(log_frame, width=100, height=10, font=("Fira Mono", 11), bg="#071426", fg="#9bd6e3", insertbackground="#9bd6e3", borderwidth=0, relief="flat")
+        self.log_box = scrolledtext.ScrolledText(
+            log_frame,
+            width=100,
+            height=10,
+            font=("Fira Mono", 11),
+            bg="#071426",
+            fg="#9bd6e3",
+            insertbackground="#9bd6e3",
+            borderwidth=0,
+            relief="flat",
+        )
         self.log_box.pack(pady=5, fill="both", expand=True)
 
         status_frame = tb.Frame(main_frame, bootstyle="dark")
         status_frame.pack(fill="x", pady=10)
 
-        self.status_label = tb.Label(status_frame, text="Idle", font=("Fira Sans", 12, "bold"), bootstyle=PRIMARY)
+        self.status_label = tb.Label(
+            status_frame, text="Idle", font=("Fira Sans", 12, "bold"), bootstyle=PRIMARY
+        )
         self.status_label.pack(side="left")
 
-        self.progress = tb.Progressbar(status_frame, bootstyle="info", mode="indeterminate", length=180)
+        self.progress = tb.Progressbar(
+            status_frame, bootstyle="info", mode="indeterminate", length=180
+        )
         self.progress.pack(side="left", padx=12)
 
         self._spinner_running = False
@@ -264,7 +371,14 @@ class LAPH_GUI:
                 break
             y = dline[1]
             line_number = str(i).split(".")[0]
-            self.linenos.create_text(36, y+2, anchor="e", text=line_number, font=("Fira Code", 10), fill="#6bd6c4")
+            self.linenos.create_text(
+                36,
+                y + 2,
+                anchor="e",
+                text=line_number,
+                font=("Fira Code", 10),
+                fill="#6bd6c4",
+            )
             i = self.output_box.index(f"{i} +1line")
 
     def _start_spinner(self):
@@ -284,7 +398,7 @@ class LAPH_GUI:
         """Animate a simple unicode spinner by rotating through frames on a timer."""
         if not self._spinner_running:
             return
-        frames = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"]
+        frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self._spinner_index = (self._spinner_index + 1) % len(frames)
         self.status_label.config(text=f"Running... {frames[self._spinner_index]}")
         self.root.after(120, self._animate_spinner)
@@ -293,7 +407,7 @@ class LAPH_GUI:
         """Append a log message into the UI log pane, adding spacing for separators."""
         # Make separator messages stand out by adding an extra blank line after them
         self.log_box.insert(tk.END, message)
-        if '---' in message or '🎉' in message or '❌' in message:
+        if "---" in message or "🎉" in message or "❌" in message:
             self.log_box.insert(tk.END, "\n")
         self.log_box.see(tk.END)
 
@@ -388,12 +502,14 @@ class LAPH_GUI:
             max_iters = 0
         if max_iters > 60:
             max_iters = 60
-        
+
         self.status_label.config(text="Running...", bootstyle=WARNING)
         self.logger.log(f"Starting task with max {max_iters} iterations.")
         self._start_spinner()
 
-        final_code = self.agent.run_task(task, max_iters=max_iters, stream_callback=self.stream_callback)
+        final_code = self.agent.run_task(
+            task, max_iters=max_iters, stream_callback=self.stream_callback
+        )
 
         # stop spinner
         self._stop_spinner()
@@ -402,8 +518,11 @@ class LAPH_GUI:
             self.status_label.config(text="Success! ✨", bootstyle=SUCCESS)
             self.logger.log("Task finished successfully.")
         else:
-            self.status_label.config(text="Failed to generate a working script. Try a different prompt or more iterations.", bootstyle=DANGER)
+            self.status_label.config(
+                text="Failed to generate a working script. Try a different prompt or more iterations.",
+                bootstyle=DANGER,
+            )
             self.logger.log("Task failed. Maximum iterations reached.")
-        
+
         self.run_button.config(state="normal")
         self.example_button.config(state="normal")

@@ -1,4 +1,3 @@
-
 """Sandboxed code execution utilities.
 
 `CodeRunner` executes Python code in temporary files while imposing resource
@@ -7,6 +6,7 @@ The implementation is intentionally minimal and synchronous for simplicity.
 """
 
 import subprocess
+import sys
 import tempfile
 import os
 import resource
@@ -14,8 +14,10 @@ import time
 import shlex
 import json
 
+
 class CodeRunner:
     """Execute and interact with Python code payloads in a temporary sandbox."""
+
     def run_code(self, code: str):
         """
         Execute Python code in a temporary file with resource limits.
@@ -32,15 +34,17 @@ class CodeRunner:
             # Limit CPU time to 5 seconds
             resource.setrlimit(resource.RLIMIT_CPU, (5, 5))
             # Limit memory to 256MB
-            resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
+            resource.setrlimit(
+                resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024)
+            )
 
         try:
             result = subprocess.run(
-                ["python3", temp_path],
+                [sys.executable, temp_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=8,
-                preexec_fn=set_limits
+                preexec_fn=set_limits,
             )
             stdout = result.stdout.decode()
             stderr = result.stderr.decode()
@@ -61,7 +65,12 @@ class CodeRunner:
             temp_path = f.name
 
         try:
-            proc = subprocess.Popen(["python3", temp_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(
+                [sys.executable, temp_path],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
 
             stdin_data = None
             if inputs:

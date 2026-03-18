@@ -7,6 +7,7 @@ registered callbacks (e.g., a UI log window) so they can react to log events.
 import os
 import datetime
 
+
 class Logger:
     """Logger that appends timestamped messages to a logfile and notifies callbacks."""
 

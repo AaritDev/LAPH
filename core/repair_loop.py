@@ -1,4 +1,3 @@
-
 """Core repair loop orchestration.
 
 This module contains the `RepairLoop` class which coordinates the iterative
@@ -16,8 +15,10 @@ from core.prompt_manager import PromptManager
 from core.logger import Logger
 import json
 
+
 class RepairLoop:
     """Orchestrates the iterative repair cycle (Thinker -> Coder -> Runner -> Thinker)."""
+
     def __init__(self, logger: Logger, model_name="qwen3:14b"):
         """Initialize LLM interfaces, runner and prompt manager.
 
@@ -27,21 +28,24 @@ class RepairLoop:
         # Load all models
         from core.llm_interface import LLMInterface
         import toml
+
         models_cfg = toml.load("configs/models.toml")
         self.models = {
-            'thinker': LLMInterface(models_cfg['mini']['name']),
-            'summariser': LLMInterface(models_cfg['mini']['name']),
-            'vision': LLMInterface(models_cfg['vision']['name']),
-            'coder': LLMInterface(models_cfg['coder']['name'])
+            "thinker": LLMInterface(models_cfg["mini"]["name"]),
+            "summariser": LLMInterface(models_cfg["mini"]["name"]),
+            "vision": LLMInterface(models_cfg["vision"]["name"]),
+            "coder": LLMInterface(models_cfg["coder"]["name"]),
         }
         self.runner = CodeRunner()
         self.prompts = PromptManager()
         self.logger = logger
         # Provide a minimal no-op logger when `logger` is None for tests or simple runs
         if self.logger is None:
+
             class _NullLogger:
                 def log(self, *args, **kwargs):
                     pass
+
             self.logger = _NullLogger()
 
     def _generate_spec(self, task, code, last_error, stream_callback):
@@ -59,7 +63,7 @@ class RepairLoop:
 
         spec_output = ""
         self.logger.log("--- Thinker Output ---")
-        for chunk in self.models['thinker'].generate(thinker_prompt):
+        for chunk in self.models["thinker"].generate(thinker_prompt):
             spec_output += chunk
             if stream_callback:
                 stream_callback(chunk, "thinker")
@@ -70,23 +74,26 @@ class RepairLoop:
 
         # Try to extract a JSON fenced block first, then fallback to raw text
         import re, json
+
         json_block = None
         m = re.search(r"```json\s*([\s\S]*?)```", spec_output)
         if m:
             try:
                 parsed = json.loads(m.group(1))
-                json_block = parsed.get('spec') if isinstance(parsed, dict) else None
+                json_block = parsed.get("spec") if isinstance(parsed, dict) else None
             except Exception as e:
                 self.logger.log(f"[Thinker JSON parse error] {e}")
 
         if json_block is None:
             # Fallback: try to find a plain JSON object anywhere in the output
             try:
-                start = spec_output.find('{')
-                end = spec_output.rfind('}')
+                start = spec_output.find("{")
+                end = spec_output.rfind("}")
                 if start != -1 and end != -1 and end > start:
-                    parsed = json.loads(spec_output[start:end+1])
-                    json_block = parsed.get('spec') if isinstance(parsed, dict) else None
+                    parsed = json.loads(spec_output[start : end + 1])
+                    json_block = (
+                        parsed.get("spec") if isinstance(parsed, dict) else None
+                    )
             except Exception as e:
                 self.logger.log(f"[Thinker JSON fallback parse error] {e}")
 
@@ -110,7 +117,7 @@ class RepairLoop:
 
         new_code_output = ""
         self.logger.log("--- Coder Output ---")
-        for chunk in self.models['coder'].generate(coder_prompt):
+        for chunk in self.models["coder"].generate(coder_prompt):
             new_code_output += chunk
             if stream_callback:
                 stream_callback(chunk, "coder")
@@ -128,6 +135,7 @@ class RepairLoop:
     def _split_code_and_tests(self, output: str):
         """Return (code, tests) where tests is a string or None."""
         import re
+
         fences = re.findall(r"```(?:python\n)?([\s\S]*?)```", output)
         if not fences:
             # no fenced blocks; everything is code
@@ -137,7 +145,7 @@ class RepairLoop:
             return fences[0], None
         # multiple fenced blocks: heuristically pick the last as tests if it contains 'assert' or 'pytest'
         last = fences[-1]
-        if 'assert ' in last or 'pytest' in last or 'unittest' in last:
+        if "assert " in last or "pytest" in last or "unittest" in last:
             # code is everything before the last fence extracted
             code_blocks = fences[:-1]
             return "\n\n".join(code_blocks), last
@@ -151,15 +159,20 @@ class RepairLoop:
         src = (code or "") + "\n" + (tests or "")
 
         # If code uses regex but doesn't import re, add it
-        if ("re." in src or "re.match" in src or "re.search" in src) and "import re" not in code and "from re" not in code:
+        if (
+            ("re." in src or "re.match" in src or "re.search" in src)
+            and "import re" not in code
+            and "from re" not in code
+        ):
             preamble_lines.append("import re")
-
 
         # If code uses 'randint(' explicitly, ensure 'from random import randint' is present
         if "randint(" in src and "from random import randint" not in code:
             preamble_lines.append("from random import randint")
         # Otherwise if random namespace is used, ensure 'import random' is present
-        elif ("random." in src or "random(" in src) and ("import random" not in code and "from random" not in code):
+        elif ("random." in src or "random(" in src) and (
+            "import random" not in code and "from random" not in code
+        ):
             preamble_lines.append("import random")
 
         # If tests are present and random is used anywhere, seed it for deterministic tests
@@ -167,7 +180,9 @@ class RepairLoop:
             preamble_lines.append("random.seed(0)")
 
         # If we plan to seed random but didn't add a full 'import random', ensure it's present
-        if any(l.startswith("random.seed") for l in preamble_lines) and all(l != "import random" for l in preamble_lines):
+        if any(l.startswith("random.seed") for l in preamble_lines) and all(
+            l != "import random" for l in preamble_lines
+        ):
             # add import random at the beginning
             preamble_lines.insert(0, "import random")
 
@@ -180,6 +195,7 @@ class RepairLoop:
         """Extract code from model output, preferring fenced ```python blocks."""
         # If the model wrapped code in ``` fences, extract the first fenced block.
         import re
+
         fence_match = re.search(r"```(?:python\n)?([\s\S]*?)```", output)
         if fence_match:
             return fence_match.group(1).strip()
@@ -215,9 +231,13 @@ class RepairLoop:
                 run_payload = code + "\n\n" + tests
 
             # Sanitize: auto-inject imports/seeds when obvious
-            preamble, run_code_sanitized, run_tests_sanitized = self._sanitize_code_for_run(code, tests)
+            preamble, run_code_sanitized, run_tests_sanitized = (
+                self._sanitize_code_for_run(code, tests)
+            )
             if run_tests_sanitized:
-                full_payload = preamble + run_code_sanitized + "\n\n" + run_tests_sanitized
+                full_payload = (
+                    preamble + run_code_sanitized + "\n\n" + run_tests_sanitized
+                )
             else:
                 full_payload = preamble + run_code_sanitized
 
@@ -234,7 +254,9 @@ class RepairLoop:
 
             # Give the Thinker a chance to interact with the failed run and gather more evidence
             self.logger.log("--- Invoking Thinker Interaction ---")
-            interaction_prompt = self.prompts.build_thinker_interaction(task, code, stdout, stderr, exitcode)
+            interaction_prompt = self.prompts.build_thinker_interaction(
+                task, code, stdout, stderr, exitcode
+            )
             self.logger.log("--- Thinker Interaction Prompt ---\n" + interaction_prompt)
 
             # stream prompt and start/end signals for UI
@@ -243,7 +265,7 @@ class RepairLoop:
                 stream_callback(None, "thinker_start")
 
             interaction_output = ""
-            for chunk in self.models['thinker'].generate(interaction_prompt):
+            for chunk in self.models["thinker"].generate(interaction_prompt):
                 interaction_output += chunk
                 if stream_callback:
                     stream_callback(chunk, "thinker")
@@ -255,27 +277,30 @@ class RepairLoop:
             parsed = None
             try:
                 import re
+
                 m = re.search(r"```json\s*([\s\S]*?)```", interaction_output)
                 if m:
                     parsed = json.loads(m.group(1))
                 else:
                     # fallback to any JSON object in the output
-                    start = interaction_output.find('{')
-                    end = interaction_output.rfind('}')
+                    start = interaction_output.find("{")
+                    end = interaction_output.rfind("}")
                     if start != -1 and end != -1 and end > start:
-                        parsed = json.loads(interaction_output[start:end+1])
+                        parsed = json.loads(interaction_output[start : end + 1])
             except Exception as e:
                 self.logger.log(f"[Thinker interaction parse error] {e}")
 
             if parsed:
-                actions = parsed.get('actions', [])
-                followup_spec = parsed.get('followup_spec', '')
+                actions = parsed.get("actions", [])
+                followup_spec = parsed.get("followup_spec", "")
 
                 # Execute any input actions
-                inputs = [a['payload'] for a in actions if a.get('type') == 'input']
+                inputs = [a["payload"] for a in actions if a.get("type") == "input"]
                 if inputs:
                     self.logger.log("--- Running interactive actions ---")
-                    istdout, istderr, iexit = self.runner.run_code_interactive(code, inputs=inputs)
+                    istdout, istderr, iexit = self.runner.run_code_interactive(
+                        code, inputs=inputs
+                    )
                     self.logger.log("--- Interactive Execution Result ---")
                     self.logger.log("ISTDOUT:\n" + istdout)
                     self.logger.log("ISTDERR:\n" + istderr)
@@ -285,13 +310,17 @@ class RepairLoop:
                     if followup_spec:
                         spec = followup_spec
                         # generate a new code attempt with the followup spec
-                        code, tests = self._generate_code(spec, code, last_error, stream_callback)
+                        code, tests = self._generate_code(
+                            spec, code, last_error, stream_callback
+                        )
                         continue
                 else:
                     # No input actions; if a followup_spec exists, use it
                     if followup_spec:
                         spec = followup_spec
-                        code, tests = self._generate_code(spec, code, last_error, stream_callback)
+                        code, tests = self._generate_code(
+                            spec, code, last_error, stream_callback
+                        )
                         continue
 
             # Fallback: no usable interaction or followup, set last_error and retry with same loop
