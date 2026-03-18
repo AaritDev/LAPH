@@ -23,10 +23,10 @@ class InstallerGUI:
         self.root = root
         self.root.title("L.A.P.H. Installer")
         self.root.geometry("600x500")
-        self.root.resizable(False, False)
+        self.root.resizable(True, True)
 
         # Apply theme
-        style = tb.Style("superhero")
+        style = tb.Style("cosmo")
 
         # installation paths
         self.install_root = Path.home() / ".local"
@@ -41,14 +41,14 @@ class InstallerGUI:
 
     def setup_ui(self):
         """Create and layout all UI widgets."""
-        main_frame = tb.Frame(self.root, padding=20, bootstyle="dark")
+        main_frame = tb.Frame(self.root, padding=20, bootstyle="light")
         main_frame.pack(fill="both", expand=True)
 
         # Header
         header = tb.Label(
             main_frame,
             text="L.A.P.H. Installation Wizard",
-            font=("Orbitron", 18, "bold"),
+            font=("Arial", 18, "bold"),
             bootstyle="inverse-primary",
         )
         header.pack(fill="x", pady=(0, 10))
@@ -56,9 +56,9 @@ class InstallerGUI:
         # Description
         desc = tb.Label(
             main_frame,
-            text="Local Autonomous Programming Helper\nInstalling to: "
+            text="Local Autonomous Programming Helper\nApplication directory: "
             + str(self.app_dir),
-            font=("Segoe UI", 10),
+            font=("Arial", 10),
             bootstyle="info",
             justify="center",
         )
@@ -79,6 +79,7 @@ class InstallerGUI:
             bootstyle="info",
         )
         desktop_check.pack(anchor="w", pady=5)
+        tb.Tooltip(desktop_check, text="Create a desktop shortcut for easy access")
 
         # Pull models checkbox
         self.models_var = tk.BooleanVar(value=False)
@@ -89,6 +90,7 @@ class InstallerGUI:
             bootstyle="info",
         )
         models_check.pack(anchor="w", pady=5)
+        tb.Tooltip(models_check, text="Download recommended AI models (may take time)")
 
         # Progress
         progress_frame = tb.Frame(main_frame)
@@ -108,6 +110,17 @@ class InstallerGUI:
         button_frame = tb.Frame(main_frame)
         button_frame.pack(fill="x", pady=(0, 0))
 
+        self.launch_btn = tb.Button(
+            button_frame,
+            text="Launch Now",
+            command=self.launch_app,
+            bootstyle=INFO,
+            width=12,
+            state="disabled",
+        )
+        self.launch_btn.pack(side="left", padx=5)
+        tb.Tooltip(self.launch_btn, text="Launch the installed L.A.P.H. application")
+
         self.install_btn = tb.Button(
             button_frame,
             text="Install",
@@ -116,6 +129,7 @@ class InstallerGUI:
             width=12,
         )
         self.install_btn.pack(side="right", padx=5)
+        tb.Tooltip(self.install_btn, text="Start the installation process")
 
         cancel_btn = tb.Button(
             button_frame,
@@ -125,10 +139,11 @@ class InstallerGUI:
             width=12,
         )
         cancel_btn.pack(side="right", padx=5)
+        tb.Tooltip(cancel_btn, text="Exit the installer")
 
         # Log area
         log_frame = tb.Labelframe(
-            main_frame, text="Installation Log", padding=10, bootstyle="dark"
+            main_frame, text="Installation Log", padding=10, bootstyle="light"
         )
         log_frame.pack(fill="both", expand=True, pady=(15, 0))
 
@@ -136,10 +151,10 @@ class InstallerGUI:
             log_frame,
             height=8,
             width=70,
-            font=("Fira Mono", 9),
-            bg="#071426",
-            fg="#9bd6e3",
-            insertbackground="#9bd6e3",
+            font=("Courier", 9),
+            bg="#f8f9fa",
+            fg="#212529",
+            insertbackground="#212529",
             borderwidth=0,
             relief="flat",
         )
@@ -277,7 +292,6 @@ Type=Application
 Name=L.A.P.H.
 Comment=Local Autonomous Programming Helper
 Exec="{launcher_path}" %u
-Icon=laph
 Terminal=false
 Categories=Development;Utility;
 StartupNotify=true
@@ -338,7 +352,10 @@ Keywords=code;generation;ai;programming;
                 f"Run 'laph-cli' for the command-line interface",
             )
 
-            self.root.quit()
+            self.install_btn.config(state="disabled")
+            self.launch_btn.config(state="normal")
+
+            # self.root.quit()  # Removed to allow launching
 
         except Exception as e:
             self.log_message(f"❌ Installation failed: {e}")
@@ -346,6 +363,7 @@ Keywords=code;generation;ai;programming;
                 "Installation Failed", f"Error during installation:\n{e}"
             )
             self.install_btn.config(state="normal")
+            self.launch_btn.config(state="disabled")
 
 
 def run_installer_gui():
