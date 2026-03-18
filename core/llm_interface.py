@@ -34,15 +34,18 @@ class LLMInterface:
             response.raise_for_status()
 
             full_response = ""
-            for line in response.iter_lines():
-                if line:
-                    try:
-                        data = json.loads(line)
-                        chunk = data.get("response", "")
-                        full_response += chunk
-                        yield chunk
-                    except json.JSONDecodeError:
-                        # Ignore lines that are not valid JSON
-                        pass
+            try:
+                for line in response.iter_lines():
+                    if line:
+                        try:
+                            data = json.loads(line)
+                            chunk = data.get("response", "")
+                            full_response += chunk
+                            yield chunk
+                        except json.JSONDecodeError:
+                            # Ignore lines that are not valid JSON
+                            pass
+            except requests.RequestException as e:
+                yield f"[STREAM ERROR: {e}]"
         except Exception as e:
             yield f"[LLM ERROR] {e}"

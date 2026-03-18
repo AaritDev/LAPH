@@ -34,7 +34,7 @@ class RepairLoop:
 
         models_cfg = toml.load("configs/models.toml")
         self.models = {
-            "thinker": LLMInterface(models_cfg["mini"]["name"]),
+            "thinker": LLMInterface(model_name),
             "summariser": LLMInterface(models_cfg["mini"]["name"]),
             "vision": LLMInterface(models_cfg["vision"]["name"]),
             "coder": LLMInterface(models_cfg["coder"]["name"]),
@@ -190,16 +190,11 @@ class RepairLoop:
         ):
             preamble_lines.append("import random")
 
-        # If tests are present and random is used anywhere, seed it for deterministic tests
+        # If tests are present and random is used anywhere, import full module and seed it
         if tests and ("random" in src or "randint(" in src):
+            if "import random" not in code:
+                preamble_lines.append("import random")
             preamble_lines.append("random.seed(0)")
-
-        # If we plan to seed random but didn't add a full 'import random', ensure it's present
-        if any(l.startswith("random.seed") for l in preamble_lines) and all(
-            l != "import random" for l in preamble_lines
-        ):
-            # add import random at the beginning
-            preamble_lines.insert(0, "import random")
 
         if preamble_lines:
             preamble = "\n".join(preamble_lines) + "\n\n"
@@ -308,7 +303,7 @@ class RepairLoop:
             except Exception as e:
                 self.logger.log(f"[Thinker interaction parse error] {e}")
 
-            if parsed:
+            if isinstance(parsed, dict):
                 actions = parsed.get("actions", [])
                 followup_spec = parsed.get("followup_spec", "")
 

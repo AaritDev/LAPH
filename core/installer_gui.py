@@ -366,9 +366,20 @@ Keywords=code;generation;ai;programming;
             self.launch_btn.config(state="disabled")
 
 
+    def launch_app(self):
+        """Launch the installed application."""
+        launcher_path = self.app_dir / "laph"
+        try:
+            subprocess.Popen([str(launcher_path)])
+            self.log_message("🚀 Launching L.A.P.H....")
+            self.root.quit()  # Close installer after launching
+        except Exception as e:
+            messagebox.showerror("Launch Failed", f"Could not launch app: {e}")
+
+
 def run_installer_gui():
     """Launch the installer GUI."""
-    root = tb.Window(themename="superhero")
+    root = tb.Window(themename="cosmo")
     installer = InstallerGUI(root)
     root.mainloop()
 

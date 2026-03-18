@@ -401,7 +401,8 @@ class LAPH_GUI:
         frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self._spinner_index = (self._spinner_index + 1) % len(frames)
         self.status_label.config(text=f"Running... {frames[self._spinner_index]}")
-        self.root.after(120, self._animate_spinner)
+        if self._spinner_running:
+            self.root.after(120, self._animate_spinner)
 
     def log_message(self, message):
         """Append a log message into the UI log pane, adding spacing for separators."""

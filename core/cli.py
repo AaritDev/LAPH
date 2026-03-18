@@ -234,9 +234,7 @@ def generate(
     agent = RepairLoop(logger, model_name=model)
     # Override the coder model if specified
     from core.llm_interface import LLMInterface
-    import toml
 
-    models_cfg = toml.load("configs/models.toml")
     agent.models["coder"] = LLMInterface(coder_model)
 
     try:
