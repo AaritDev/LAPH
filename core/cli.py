@@ -41,16 +41,127 @@ def stream_to_cli(chunk: str | None, source: str):
         click.echo("\n" + "-" * 60)
 
 
-@click.group()
-def cli():
+@click.group(invoke_without_command=True)
+@click.pass_context
+@click.argument("task", required=False, nargs=-1)
+def cli(ctx, task):
     """L.A.P.H. — Local Autonomous Programming Helper.
 
     An offline, multi-agent AI system that writes, runs, debugs, and fixes code.
+
+    Quick usage:
+        laph "write a hello world program"
+        laph generate "task" --max-iterations 20
+        laph gui
+        laph help
     """
-    pass
+    # If a task is provided without a subcommand, treat it as a generate request
+    if task and ctx.invoked_subcommand is None:
+        ctx.invoke(
+            generate,
+            task=task,
+            max_iterations=10,
+            model="qwen3:14b",
+            coder_model="qwen2.5-coder:7b-instruct",
+            verbose=False,
+            output=None,
+        )
+    elif not ctx.invoked_subcommand and not task:
+        # No task and no subcommand -> show help
+        click.echo(ctx.get_help())
 
 
-@cli.command()
+@cli.command(name="help")
+def show_help():
+    """Show helpful usage examples and tips."""
+    help_text = """
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                  L.A.P.H. — Local Autonomous Programming Helper              ║
+║          An offline AI system that writes, runs, debugs, and fixes code      ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+📚 QUICK START
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Generate code from a simple task
+  laph "write a hello world program"
+
+  # Use the GUI
+  laph gui
+
+  # Run the installer
+  laph install
+
+
+📋 COMMAND REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  laph "TASK"
+    Generate code (simplest)
+
+  laph generate "TASK" [OPTIONS]
+    Generate with advanced options
+
+  laph gui
+    Launch GUI
+
+  laph install
+    Run installer
+
+  laph help
+    Show this message
+
+
+⚙️  OPTIONS FOR 'generate' COMMAND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  -i, --max-iterations NUM     Max iterations (1-60, default: 10)
+  -m, --model NAME             Thinker model (default: qwen3:14b)
+  -c, --coder-model NAME       Coder model (default: qwen2.5-coder:7b)
+  -o, --output FILE            Save code to file
+  -v, --verbose                Show detailed logs
+
+
+💡 EXAMPLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Simplest (recommended)
+  laph "write a dice roller"
+
+  # Save to file
+  laph "task" -o app.py
+
+  # More iterations
+  laph generate "task" --max-iterations 20
+
+  # Custom model
+  laph generate "task" --model qwen3:14b
+
+  # Verbose
+  laph "task" -v
+
+
+🔧 ENVIRONMENT VARIABLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  LAPH_LLM_ENDPOINT         http://localhost:11434
+  LAPH_MODELS_THINKER       qwen3:4b
+  LAPH_MODELS_CODER         qwen2.5-coder:7b
+
+Example:
+  LAPH_MODELS_CODER=qwen3:7b laph "task"
+
+
+📖 LINKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  GitHub: https://github.com/AaritDev/LAPH
+
+"""
+    click.echo(help_text)
+
+
+@cli.command(context_settings=dict(allow_interspersed_args=False))
 @click.argument("task", required=True, nargs=-1)
 @click.option(
     "--max-iterations",

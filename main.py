@@ -32,11 +32,13 @@ def main():
     elif command in ("generate", "cli", "--help", "-h", "help"):
         # Delegate to CLI system
         from core.cli import cli
+
         sys.argv.pop(1)  # Remove 'cli' or similar command
         cli()
     else:
         # Treat as CLI command
         from core.cli import cli
+
         cli()
 
 
@@ -50,6 +52,7 @@ def launch_gui():
 def launch_installer():
     """Launch the installer GUI."""
     from core.installer_gui import run_installer_gui
+
     run_installer_gui()
 
 
