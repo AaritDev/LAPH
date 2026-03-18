@@ -29,4 +29,29 @@ exclude = '''/(
 )/
 '''
 
-tool.ruff = { line_length = 88 }
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+ignore_missing_imports = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+
+[[tool.mypy.overrides]]
+module = [
+    "ttkbootstrap.*",
+    "PIL.*",
+    "psutil.*",
+    "pyautogui.*",
+    "toml.*"
+]
+ignore_missing_imports = true
+
