@@ -7,19 +7,22 @@ feeds errors back into the cycle until a passing program is produced or the
 maximum iterations are exhausted.
 """
 
-import os
-import time
-from core.llm_interface import LLMInterface
-from core.runner import CodeRunner
-from core.prompt_manager import PromptManager
-from core.logger import Logger
 import json
+import os
+import re
+import time
+from typing import Callable, Optional, Tuple
+
+from core.llm_interface import LLMInterface
+from core.logger import Logger
+from core.prompt_manager import PromptManager
+from core.runner import CodeRunner
 
 
 class RepairLoop:
     """Orchestrates the iterative repair cycle (Thinker -> Coder -> Runner -> Thinker)."""
 
-    def __init__(self, logger: Logger, model_name="qwen3:14b"):
+    def __init__(self, logger: Optional[Logger], model_name: str = "qwen3:14b") -> None:
         """Initialize LLM interfaces, runner and prompt manager.
 
         Loads model names from `configs/models.toml` and instantiates role-specific
@@ -48,7 +51,13 @@ class RepairLoop:
 
             self.logger = _NullLogger()
 
-    def _generate_spec(self, task, code, last_error, stream_callback):
+    def _generate_spec(
+        self,
+        task: str,
+        code: Optional[str],
+        last_error: Optional[str],
+        stream_callback: Optional[Callable[[str, str], None]],
+    ) -> str:
         """Ask the thinker LLM to produce a specification for the given task.
 
         Returns the spec string (preferably extracted from fenced JSON block) or
@@ -73,8 +82,6 @@ class RepairLoop:
             stream_callback(None, "thinker_end")
 
         # Try to extract a JSON fenced block first, then fallback to raw text
-        import re, json
-
         json_block = None
         m = re.search(r"```json\s*([\s\S]*?)```", spec_output)
         if m:
@@ -103,7 +110,13 @@ class RepairLoop:
         # Last resort: return the raw text (strip any fenced ticks)
         return self._extract_code_from_output(spec_output)
 
-    def _generate_code(self, spec, code, last_error, stream_callback):
+    def _generate_code(
+        self,
+        spec: str,
+        code: Optional[str],
+        last_error: Optional[str],
+        stream_callback: Optional[Callable[[str, str], None]],
+    ) -> Tuple[str, Optional[str]]:
         """Ask the coder LLM to generate code based on `spec`.
 
         Returns a tuple (cleaned_code, tests_piece) where `tests_piece` may be None.
@@ -152,7 +165,9 @@ class RepairLoop:
         # otherwise assume first block is code
         return fences[0], None
 
-    def _sanitize_code_for_run(self, code: str, tests: str | None):
+    def _sanitize_code_for_run(
+        self, code: str, tests: Optional[str]
+    ) -> Tuple[str, str, Optional[str]]:
         """Return a (preamble, code, tests) tuple where preamble contains any auto-injected imports or seeds."""
         preamble_lines = []
 
@@ -194,8 +209,6 @@ class RepairLoop:
     def _extract_code_from_output(self, output: str) -> str:
         """Extract code from model output, preferring fenced ```python blocks."""
         # If the model wrapped code in ``` fences, extract the first fenced block.
-        import re
-
         fence_match = re.search(r"```(?:python\n)?([\s\S]*?)```", output)
         if fence_match:
             return fence_match.group(1).strip()
@@ -206,7 +219,12 @@ class RepairLoop:
         # Otherwise, assume all output is code; but strip any leading explanatory lines
         return output.strip()
 
-    def run_task(self, task: str, max_iters=20, stream_callback=None):
+    def run_task(
+        self,
+        task: str,
+        max_iters: int = 20,
+        stream_callback: Optional[Callable[[str, str], None]] = None,
+    ) -> Optional[str]:
         """Top-level loop: attempt to synthesize and run code until success or max_iters.
 
         For each iteration the method:

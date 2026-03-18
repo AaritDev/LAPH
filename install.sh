@@ -65,20 +65,29 @@ fi
 deactivate
 
 # ------------------------------------------------------------
-# Launcher script (the ONLY executable entrypoint)
-# ------------------------------------------------------------
-echo "==> Creating launcher"
-cat >"$APP_DIR/laph" <<'EOF'
+# Create a launcher script in the bin directory that won't require paths
+LAUNCHER_BIN="$BIN_DIR/laph"
+cat >"$LAUNCHER_BIN" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/venv/bin/activate"
-exec python "$HERE/main.py"
+APP_VENV="$HOME/.local/bin/LAPH/venv"
+"$APP_VENV/bin/python" "$HOME/.local/bin/LAPH/main.py" gui "$@"
 EOF
 
-chmod +x "$APP_DIR/laph"
-ln -sf "$APP_DIR/laph" "$BIN_DIR/laph"
+chmod +x "$LAUNCHER_BIN"
+
+# Also create a CLI launcher
+LAUNCHER_CLI="$BIN_DIR/laph-cli"
+cat >"$LAUNCHER_CLI" <<'EOF'
+#!/usr/bin/env bash
+set -e
+
+APP_VENV="$HOME/.local/bin/LAPH/venv"
+"$APP_VENV/bin/python" -m core.cli "$@"
+EOF
+
+chmod +x "$LAUNCHER_CLI"
 
 # ------------------------------------------------------------
 # Icon installation
@@ -92,16 +101,17 @@ fi
 # Desktop entry
 # ------------------------------------------------------------
 echo "==> Creating desktop entry"
-cat >"$DESKTOP_FILE" <<EOF
+cat >"$DESKTOP_FILE" <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=L.A.P.H.
 Comment=Local Autonomous Programming Helper
-Exec="$VENV_DIR/bin/python $APP_DIR/main.py"
-Icon="$APP_DIR/laph.png"
-Terminal=true
+Exec=laph
+Icon=laph
+Terminal=false
 Categories=Development;Utility;
 StartupNotify=true
+Keywords=code;generation;ai;programming;
 EOF
 
 chmod 644 "$DESKTOP_FILE"
