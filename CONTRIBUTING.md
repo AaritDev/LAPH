@@ -256,19 +256,156 @@ def generate_spec(
 Follow [Semantic Versioning](https://semver.org/):
 
 - **MAJOR.MINOR.PATCH** (e.g., `1.2.3`)
-- MAJOR: Breaking changes
-- MINOR: New features (backward compatible)
-- PATCH: Bug fixes
+- MAJOR: Breaking changes to CLI or architecture
+- MINOR: New features (backward compatible) — typically Phase rollouts
+- PATCH: Bug fixes, prompt tweaks, minor improvements
 
 Update in `core/__version__.py` when releasing.
 
+### Semantic Versioning for L.A.P.H.
+
+- **Patch (0.1.x):** Bug fixes, prompt tweaks, minor runner improvements
+- **Minor (0.x.0):** New Phase features (vision loop, multi-model routing, SQLite history)
+- **Major (x.0.0):** Breaking CLI changes, complete architecture overhaul
+
+## Git Workflow
+
+### Branching Model
+
+L.A.P.H. uses a two-branch stability model:
+
+```
+main ──────────────────────────────●─────────── (v0.1.0)
+                                   │
+dev  ─────●──────●──────●──────────●──────●────
+          │      │      │
+         feat/  fix/   feat/
+         vision  bug    cli
+```
+
+- **`main`** — Always stable and releasable. Receives merges only from `dev` at release.
+- **`dev`** — Active development branch. Create feature branches from here.
+- **Feature branches** — Named `feat/`, `fix/`, `hotfix/`, or `docs/`. Merge back to `dev` via PR.
+
+### Creating Feature Branches
+
+```bash
+# Start from dev (ensure it's up to date)
+git checkout dev
+git pull origin dev
+
+# Create feature branch
+git checkout -b feat/add-vision-feedback
+# or
+git checkout -b fix/spinner-race-condition
+```
+
+### Merging to dev
+
+Push your branch and create a pull request to `dev`. After review and tests pass:
+
+```bash
+git checkout dev
+git pull origin dev
+git merge --no-ff feat/add-vision-feedback -m "feat: add vision feedback loop"
+git push origin dev
+```
+
+The `--no-ff` flag preserves the feature branch as a clear commit boundary in history.
+
 ## Release Process
 
-1. Update `CHANGELOG.md` with new changes
-2. Bump version in `core/__version__.py`
-3. Create git tag: `git tag v1.2.3`
-4. Push tag: `git push origin v1.2.3`
-5. Create GitHub release with changelog
+The release workflow combines version bumping, changelog updates, stable merges, and tagging:
+
+### 1. Prepare the Release
+
+On the `dev` branch, bump the version string in `core/__version__.py`:
+
+```python
+__version__ = "0.2.0"  # Update from "0.1.0"
+```
+
+### 2. Update Changelog
+
+Move all items from `[Unreleased]` section to a new `[0.2.0] - YYYY-MM-DD` section in `CHANGELOG.md`:
+
+```markdown
+## [0.2.0] - 2025-02-15
+
+### Added
+- Vision feedback loop with screenshot analysis
+- Multi-model dynamic routing
+
+### Fixed
+- Spinner race condition in GUI
+
+## [0.1.0] - 2025-01-15
+...
+```
+
+### 3. Commit Version Bump
+
+```bash
+git add core/__version__.py CHANGELOG.md
+git commit -m "chore: bump version to 0.2.0"
+```
+
+### 4. Merge dev → main
+
+Switch to `main` and merge `dev` with a release commit:
+
+```bash
+git checkout main
+git pull origin main
+git merge dev --no-ff -m "release: v0.2.0"
+```
+
+The `--no-ff` flag creates a clear merge commit marking the release boundary.
+
+### 5. Create Annotated Tag
+
+```bash
+git tag -a v0.2.0 -m "Phase 2: vision feedback loop and multi-model routing"
+```
+
+Annotated tags (with `-a`) store tagger info and timestamp — important for collaboration.
+
+### 6. Push Everything
+
+```bash
+git push origin main dev --tags
+```
+
+### 7. Create GitHub Release
+
+On GitHub, go to **Releases** and create a new release from tag `v0.2.0`. Copy the relevant section from `CHANGELOG.md` as the release notes.
+
+### Example Release Timeline
+
+```bash
+# On dev branch, after feature work is complete and merged
+git checkout dev
+git pull origin dev
+
+# Bump version
+sed -i 's/__version__ = "0.1.0"/__version__ = "0.2.0"/' core/__version__.py
+# (or edit manually)
+
+# Update CHANGELOG.md
+# ... edit file ...
+
+# Commit
+git add core/__version__.py CHANGELOG.md
+git commit -m "chore: bump version to 0.2.0"
+
+# Merge to main and tag
+git checkout main
+git merge dev --no-ff -m "release: v0.2.0"
+git tag -a v0.2.0 -m "Phase 2 release"
+
+# Push all branches and tags
+git push origin main dev --tags
+```
 
 ## Reporting Issues
 
