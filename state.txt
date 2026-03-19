@@ -1,0 +1,53 @@
+iteration: 2
+last_code: "```python
+import random
+
+def parse_dice_input(input_str):
+    dice_list = []
+    for die in input_str.split(','):
+        die = die.strip()
+        if not die:
+            continue
+        parts = die.split('d')
+        if len(parts) != 2:
+            raise ValueError(f"Invalid die format: {die}")
+        count, sides = map(int, parts)
+        if count <= 0 or sides <= 0:
+            raise ValueError(f"Invalid count or sides for die: {die}")
+        dice_list.append((count, sides))
+    return dice_list
+
+def roll_dice(dice):
+    rolls = [random.randint(1, side) for _ in range(count) for count, side in dice]
+    return rolls
+
+def main():
+    input_str = input("Enter dice configuration (e.g., '2d20, 1d4'): ").strip()
+    try:
+        dice = parse_dice_input(input_str)
+    except ValueError as e:
+        print(f"Error: {e}")
+        return
+    
+    rolls = roll_dice(dice)
+    total = sum(rolls)
+    
+    custom_value = int(input("Enter custom value to add (optional, default 0): ") or 0)
+    
+    result_rolls = []
+    for count, sides in dice:
+        die_rolls = random.choices(range(1, sides + 1), k=count)
+        result_rolls.append(f"{count}d{sides} → {', '.join(map(str, die_rolls))} ({sum(die_rolls)})")
+    
+    print("\nRolls:", "; ".join(result_rolls))
+    print(f"Total: {total}")
+    print(f"Final Total: {total + custom_value}")
+
+if __name__ == "__main__":
+    main()
+```"
+last_error: "  File "/tmp/tmpog2qkls8.py", line 1
+    ```python
+    ^
+SyntaxError: invalid syntax
+"

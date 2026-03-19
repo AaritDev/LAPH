@@ -136,5 +136,5 @@ fi
 
 echo
 echo "✅ $APP_NAME installed successfully"
-echo "→ Launch from app menu or run: \"$APP_DIR/venv/bin/python $APP_DIR/main.py\" (or run $(laph) if your PATH and desktop support it)"
+echo "→ Launch from app menu or run: \"$APP_DIR/venv/bin/python $APP_DIR/main.py\" (or run 'laph' if your PATH and desktop support it)"
 echo "→ Uninstall by deleting: $APP_DIR, $DESKTOP_FILE, $ICON_DIR/$APP_ID.png"

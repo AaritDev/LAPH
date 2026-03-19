@@ -51,7 +51,7 @@ def check_tests():
     """Run pytest."""
     print("\nRunning tests...")
     result = subprocess.run(
-        [".venv/bin/pytest", "tests/", "-q"], capture_output=True, text=True
+        [sys.executable, "-m", "pytest", "tests/", "-q"], capture_output=True, text=True
     )
     print(result.stdout)
     if result.returncode != 0:
