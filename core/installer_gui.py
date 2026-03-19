@@ -10,9 +10,11 @@ import subprocess
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+
 import ttkbootstrap as tb
 from ttkbootstrap.constants import SUCCESS, DANGER, INFO, WARNING
+from ttkbootstrap.widgets import ToolTip
 
 
 class InstallerGUI:
@@ -72,25 +74,25 @@ class InstallerGUI:
 
         # Desktop entry checkbox
         self.desktop_var = tk.BooleanVar(value=True)
-        desktop_check = ttk.Checkbutton(
+        desktop_check = tb.Checkbutton(
             options_frame,
             text="Create desktop launcher",
             variable=self.desktop_var,
             bootstyle="info",
         )
         desktop_check.pack(anchor="w", pady=5)
-        tb.Tooltip(desktop_check, text="Create a desktop shortcut for easy access")
+        ToolTip(desktop_check, text="Create a desktop shortcut for easy access")
 
         # Pull models checkbox
         self.models_var = tk.BooleanVar(value=False)
-        models_check = ttk.Checkbutton(
+        models_check = tb.Checkbutton(
             options_frame,
             text="Download LLM models (requires Ollama & internet)",
             variable=self.models_var,
             bootstyle="info",
         )
         models_check.pack(anchor="w", pady=5)
-        tb.Tooltip(models_check, text="Download recommended AI models (may take time)")
+        ToolTip(models_check, text="Download recommended AI models (may take time)")
 
         # Progress
         progress_frame = tb.Frame(main_frame)
@@ -101,7 +103,7 @@ class InstallerGUI:
         )
         self.progress_label.pack(anchor="w")
 
-        self.progress = ttk.Progressbar(
+        self.progress = tb.Progressbar(
             progress_frame, mode="determinate", bootstyle="info", length=400
         )
         self.progress.pack(fill="x", pady=(5, 0))
@@ -119,7 +121,7 @@ class InstallerGUI:
             state="disabled",
         )
         self.launch_btn.pack(side="left", padx=5)
-        tb.Tooltip(self.launch_btn, text="Launch the installed L.A.P.H. application")
+        ToolTip(self.launch_btn, text="Launch the installed L.A.P.H. application")
 
         self.install_btn = tb.Button(
             button_frame,
@@ -129,7 +131,7 @@ class InstallerGUI:
             width=12,
         )
         self.install_btn.pack(side="right", padx=5)
-        tb.Tooltip(self.install_btn, text="Start the installation process")
+        ToolTip(self.install_btn, text="Start the installation process")
 
         cancel_btn = tb.Button(
             button_frame,
@@ -139,7 +141,7 @@ class InstallerGUI:
             width=12,
         )
         cancel_btn.pack(side="right", padx=5)
-        tb.Tooltip(cancel_btn, text="Exit the installer")
+        ToolTip(cancel_btn, text="Exit the installer")
 
         # Log area
         log_frame = tb.Labelframe(
@@ -160,7 +162,7 @@ class InstallerGUI:
         )
         self.log_text.pack(fill="both", expand=True)
 
-        scrollbar = ttk.Scrollbar(
+        scrollbar = tb.Scrollbar(
             log_frame, command=self.log_text.yview, bootstyle="info"
         )
         scrollbar.pack(side="right", fill="y")

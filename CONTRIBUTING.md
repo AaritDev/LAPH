@@ -4,7 +4,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ## Code of Conduct
 
-We are committed to providing a welcoming and inspiring community for all. Please read and abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+We are committed to providing a welcoming and inspiring community for all. Please read and abide by The [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Getting Started
 

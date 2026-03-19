@@ -38,7 +38,7 @@ DEFAULT_ITERATIONS: int = 10
 DEFAULT_THINKER_MODEL: str = "qwen3:14b"
 DEFAULT_CODER_MODEL: str = "qwen2.5-coder:7b-instruct"
 DEFAULT_VISION_MODEL: str = "qwen3-vl:8b"
-DEFAULT_SUMMARIZER_MODEL: str = "qwen2.5:3b"
+DEFAULT_SUMMARIZER_MODEL: str = "qwen3:4b"
 
 # ─────────────────────────────────────────────────────────────────────────
 # LLM Configuration

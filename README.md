@@ -19,7 +19,7 @@ python -m laph "write a function that validates email addresses"
 | Component | Requirement |
 |-----------|-------------|
 | **Python** | 3.11+ |
-| **Ollama** | 0.1.0+ (for local LLM inference) |
+| **Ollama** | 0.6.0+ (for local LLM inference) |
 | **OS** | Ubuntu 22.04+, Fedora 38+, or macOS 12+ |
 | **RAM** | 16GB minimum (8GB usable for app) |
 | **VRAM** | 6GB minimum (8GB recommended for smooth operation) |
@@ -89,7 +89,7 @@ laph gui
 
 ## Architecture
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design and agent flow.
+For detailed system design and agent flow, see the code comments in `core/repair_loop.py` and `core/runner.py`.
 
 ## Performance
 
@@ -139,4 +139,7 @@ GPL-3.0 — See [LICENSE](LICENSE)
 }
 ```
 
-Built with [Ollama](https://ollama.ai), [Click](https://click.palletsprojects.com/), and [ttkbootstrap](https://github.com/israel-dryer/ttkbootstrap).
+Built with [Ollama](https://ollama.com), [Click](https://click.palletsprojects.com/), and [ttkbootstrap](https://github.com/israel-dryer/ttkbootstrap).
+
+## Important
+The image ./laph.png was created using generative AI, or the image is AI generated. This project generates code autonomously using Generative AI, the authors are not responsible for the generated output

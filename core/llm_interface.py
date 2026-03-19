@@ -17,11 +17,12 @@ class LLMInterface:
         # default to deterministic outputs unless configured otherwise
         self.model_name = model_name
         self.temperature = temperature
+        self.last_error: str | None = None
 
     def generate(self, prompt: str):
-        """
-        Send a prompt to a local Ollama model via HTTP API and stream the output.
-        """
+        """Send a prompt to a local Ollama model via HTTP API and stream the output."""
+        self.last_error = None
+
         try:
             url = "http://localhost:11434/api/generate"
             payload = {
@@ -33,19 +34,19 @@ class LLMInterface:
             response = requests.post(url, json=payload, stream=True)
             response.raise_for_status()
 
-            full_response = ""
             try:
                 for line in response.iter_lines():
-                    if line:
-                        try:
-                            data = json.loads(line)
-                            chunk = data.get("response", "")
-                            full_response += chunk
-                            yield chunk
-                        except json.JSONDecodeError:
-                            # Ignore lines that are not valid JSON
-                            pass
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                        yield data.get("response", "")
+                    except json.JSONDecodeError:
+                        # Ignore non-JSON lines
+                        continue
             except requests.RequestException as e:
-                yield f"[STREAM ERROR: {e}]"
+                self.last_error = str(e)
+                return
         except Exception as e:
-            yield f"[LLM ERROR] {e}"
+            self.last_error = str(e)
+            return

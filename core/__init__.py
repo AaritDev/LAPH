@@ -11,5 +11,4 @@ __all__ = [
     "prompt_manager",
     "repair_loop",
     "runner",
-    "vision_interface",
 ]

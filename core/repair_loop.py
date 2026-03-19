@@ -81,6 +81,12 @@ class RepairLoop:
         if stream_callback:
             stream_callback(None, "thinker_end")
 
+        # If the LLM stream failed early, stop and return an empty spec
+        thinker_error = getattr(self.models.get("thinker"), "last_error", None)
+        if thinker_error:
+            self.logger.log(f"[Thinker stream error] {thinker_error}")
+            return ""
+
         # Try to extract a JSON fenced block first, then fallback to raw text
         json_block = None
         m = re.search(r"```json\s*([\s\S]*?)```", spec_output)
@@ -139,6 +145,12 @@ class RepairLoop:
         if stream_callback:
             stream_callback(None, "coder_end")
 
+        # If the coder stream failed early, return empty output so the loop can retry.
+        coder_error = getattr(self.models.get("coder"), "last_error", None)
+        if coder_error:
+            self.logger.log(f"[Coder stream error] {coder_error}")
+            return "", None
+
         new_code = new_code_output
         # Separate code and optional tests from fenced blocks
         code_piece, tests_piece = self._split_code_and_tests(new_code)
@@ -181,20 +193,20 @@ class RepairLoop:
         ):
             preamble_lines.append("import re")
 
-        # If code uses 'randint(' explicitly, ensure 'from random import randint' is present
-        if "randint(" in src and "from random import randint" not in code:
-            preamble_lines.append("from random import randint")
-        # Otherwise if random namespace is used, ensure 'import random' is present
-        elif ("random." in src or "random(" in src) and (
-            "import random" not in code and "from random" not in code
-        ):
-            preamble_lines.append("import random")
-
-        # If tests are present and random is used anywhere, import full module and seed it
+        # If tests are present and random is used anywhere, ensure deterministic seeds.
+        # Prefer importing the full module to keep random seeding consistent across runs.
         if tests and ("random" in src or "randint(" in src):
             if "import random" not in code:
                 preamble_lines.append("import random")
             preamble_lines.append("random.seed(0)")
+        else:
+            # When not in a test context, allow lightweight import patterns.
+            if "randint(" in src and "from random import randint" not in code:
+                preamble_lines.append("from random import randint")
+            elif ("random." in src or "random(" in src) and (
+                "import random" not in code and "from random" not in code
+            ):
+                preamble_lines.append("import random")
 
         if preamble_lines:
             preamble = "\n".join(preamble_lines) + "\n\n"
@@ -230,11 +242,15 @@ class RepairLoop:
         """
         code = None
         last_error = None
+        working_code = None
 
         for i in range(max_iters):
             self.logger.log(f"--- Iteration {i+1}/{max_iters} ---")
 
-            spec = self._generate_spec(task, code, last_error, stream_callback)
+            # Prefer using the last known working code to keep prompts focused.
+            spec = self._generate_spec(
+                task, working_code or code, last_error, stream_callback
+            )
             self.logger.log("--- Running Code ---")
             code, tests = self._generate_code(spec, code, last_error, stream_callback)
 
@@ -263,6 +279,7 @@ class RepairLoop:
 
             if exitcode == 0:
                 self.logger.log("🎉 Success! Program runs without errors.")
+                working_code = code
                 return code
 
             # Give the Thinker a chance to interact with the failed run and gather more evidence
@@ -336,7 +353,8 @@ class RepairLoop:
                         )
                         continue
 
-            # Fallback: no usable interaction or followup, set last_error and retry with same loop
+            # Fallback: no usable interaction or followup. Avoid reusing stale failing code.
+            code = working_code
             last_error = stderr
             self.logger.log("--- Code failed, trying again... ---")
             time.sleep(2)
