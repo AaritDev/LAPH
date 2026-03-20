@@ -16,14 +16,16 @@ python -m laph "write a function that validates email addresses"
 
 ## Prerequisites
 
-| Component | Requirement |
-|-----------|-------------|
-| **Python** | 3.11+ |
-| **Ollama** | 0.6.0+ (for local LLM inference) |
-| **OS** | Ubuntu 22.04+, Fedora 38+, or macOS 12+ |
-| **RAM** | 16GB minimum (8GB usable for app) |
-| **VRAM** | 6GB minimum (8GB recommended for smooth operation) |
-| **Disk** | 20GB for models + code |
+|------------|----------------------------------------------------|
+| Component  | Requirement                                        |
+|------------|----------------------------------------------------|
+| **Python** | 3.11+                                              |
+| **Ollama** | 0.6.0+ (for local LLM inference)                   |
+| **OS**     | Ubuntu 22.04+, Fedora 38+, or macOS 12+            |
+| **RAM**    | 16GB minimum (8GB usable for app)                  |
+| **VRAM**   | 6GB minimum (8GB recommended for smooth operation) |
+| **Disk**   | 20GB for models + code                             |
+|------------|----------------------------------------------------|
 
 ### Install Dependencies
 
@@ -93,11 +95,13 @@ For detailed system design and agent flow, see the code comments in `core/repair
 
 ## Performance
 
-| Task Type | Avg Iterations | Est. Time | Success Rate |
-|-----------|---|---|---|
-| Simple functions | 3-5 | 45-90s | 95% |
-| Data processing | 6-10 | 2-4min | 85% |
-| Complex algorithms | 10-15 | 4-8min | 75% |
+|--------------------|----------------|-----------|--------------|
+| Task Type          | Avg Iterations | Est. Time | Success Rate |
+|--------------------|----------------|-----------|--------------|
+| Simple functions   | 3-5            | 45-90s    | 95%          |
+| Data processing    | 6-10           | 2-4min    | 85%          |
+| Complex algorithms | 10-15          | 4-8min    | 75%          |
+|--------------------|----------------|-----------|--------------|
 
 ## Limitations
 
