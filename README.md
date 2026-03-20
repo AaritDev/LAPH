@@ -45,7 +45,7 @@ sudo dnf install python3.11 python3.11-devel
 brew install python@3.11
 ```
 
-**Ollama:** Download from [ollama.ai](https://ollama.ai), then:
+**Ollama:** Download from [ollama.com](https://ollama.com), then:
 ```bash
 ollama pull qwen2.5-coder:7b-instruct
 ollama pull qwen3:14b
