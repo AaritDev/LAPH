@@ -93,7 +93,7 @@ laph gui
 
 For detailed system design and agent flow, see the code comments in `core/repair_loop.py` and `core/runner.py`.
 
-## Performance
+## Performance (Estimates)
 
 |--------------------|----------------|-----------|--------------|
 | Task Type          | Avg Iterations | Est. Time | Success Rate |

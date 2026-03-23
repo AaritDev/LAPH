@@ -297,18 +297,79 @@ def gui():
 
 
 @cli.command()
-def install():
-    """Launch the installer GUI."""
-    try:
-        from core.installer_gui import run_installer_gui
+@click.option(
+    "--mode",
+    type=click.Choice(["gui", "cli", "both"], case_sensitive=False),
+    default="gui",
+    help="Installer mode: gui, cli, or both.",
+)
+@click.option(
+    "--install-root",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True),
+    default=str(Path.home() / ".local"),
+    help="Root path for installation (CLI-only).",
+)
+@click.option(
+    "--no-desktop",
+    is_flag=True,
+    default=False,
+    help="Do not create desktop entry (CLI-only).",
+)
+@click.option(
+    "--download-models",
+    is_flag=True,
+    default=False,
+    help="Pull Ollama models during installation (CLI-only).",
+)
+@click.option(
+    "--source-dir",
+    type=click.Path(file_okay=False, dir_okay=True),
+    default=None,
+    help="Custom source directory to install from (CLI-only).",
+)
+def install(mode, install_root, no_desktop, download_models, source_dir):
+    """Run the installer (GUI or CLI).
 
-        run_installer_gui()
-    except ImportError as e:
-        click.echo(
-            click.style(f"Error: Missing dependency for installer: {e}", fg="red"),
-            err=True,
-        )
-        sys.exit(1)
+    Examples:
+      laph install --mode gui
+      laph install --mode cli --install-root ~/.local
+      laph install --mode both --download-models
+    """
+    if mode in ("gui", "both"):
+        try:
+            from core.installer_gui import run_installer_gui
+
+            click.echo(click.style("Launching graphical installer...", fg="cyan"))
+            run_installer_gui()
+        except Exception as e:
+            click.echo(
+                click.style(f"Error launching installer GUI: {e}", fg="red"),
+                err=True,
+            )
+            if mode == "gui":
+                sys.exit(1)
+
+    if mode in ("cli", "both"):
+        try:
+            from core.installer_gui import perform_install
+
+            click.echo(click.style("Starting CLI installer...", fg="cyan"))
+            result = perform_install(
+                install_root=install_root,
+                create_desktop=not no_desktop,
+                download_models=download_models,
+                source_dir=source_dir,
+                log_callback=lambda x: click.echo(x),
+                progress_callback=lambda value, status: click.echo(
+                    f"[{value}%] {status}"
+                ),
+            )
+            click.echo(click.style("Installation complete.", fg="green"))
+            click.echo(f"Installed to: {result['app_dir']}")
+            click.echo("Run 'laph' for GUI and 'laph-cli' for CLI.")
+        except Exception as e:
+            click.echo(click.style(f"❌ Installation failed: {e}", fg="red"), err=True)
+            sys.exit(1)
 
 
 @cli.command()
