@@ -55,6 +55,13 @@ def cli(ctx, task):
         laph gui
         laph help
     """
+    # Handle special cases that should show help instead of generating code
+    if task and len(task) == 1:
+        first_arg = task[0].lower()
+        if first_arg in ("help", "--help", "-h", "-help"):
+            click.echo(ctx.get_help())
+            return
+
     # If a task is provided without a subcommand, treat it as a generate request
     if task and ctx.invoked_subcommand is None:
         ctx.invoke(
@@ -83,33 +90,33 @@ def show_help():
 📚 QUICK START
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  # Generate code from a simple task
+  # Generate code from a simple task (easiest way)
   laph "write a hello world program"
 
-  # Use the GUI
+  # Use the GUI interface
   laph gui
 
-  # Run the installer
-  laph install
+  # Show this help
+  laph help
 
 
 📋 COMMAND REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  laph "TASK"
-    Generate code (simplest)
+  laph "TASK DESCRIPTION"
+    Generate code from natural language (recommended)
 
   laph generate "TASK" [OPTIONS]
     Generate with advanced options
 
   laph gui
-    Launch GUI
-
-  laph install
-    Run installer
+    Launch graphical user interface
 
   laph help
-    Show this message
+    Show this help message
+
+  laph version
+    Show version information
 
 
 ⚙️  OPTIONS FOR 'generate' COMMAND
@@ -125,19 +132,19 @@ def show_help():
 💡 EXAMPLES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  # Simplest (recommended)
-  laph "write a dice roller"
+  # Simplest usage (recommended)
+  laph "write a dice roller with input validation"
 
   # Save to file
-  laph "task" -o app.py
+  laph "create a web scraper" -o scraper.py
 
-  # More iterations
-  laph generate "task" --max-iterations 20
+  # More iterations for complex tasks
+  laph generate "build a REST API" --max-iterations 20
 
-  # Custom model
-  laph generate "task" --model qwen3:14b
+  # Custom models
+  laph generate "task" --model qwen3:14b --coder-model qwen2.5-coder:7b
 
-  # Verbose
+  # Verbose output
   laph "task" -v
 
 
@@ -294,82 +301,6 @@ def gui():
             err=True,
         )
         sys.exit(1)
-
-
-@cli.command()
-@click.option(
-    "--mode",
-    type=click.Choice(["gui", "cli", "both"], case_sensitive=False),
-    default="gui",
-    help="Installer mode: gui, cli, or both.",
-)
-@click.option(
-    "--install-root",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True),
-    default=str(Path.home() / ".local"),
-    help="Root path for installation (CLI-only).",
-)
-@click.option(
-    "--no-desktop",
-    is_flag=True,
-    default=False,
-    help="Do not create desktop entry (CLI-only).",
-)
-@click.option(
-    "--download-models",
-    is_flag=True,
-    default=False,
-    help="Pull Ollama models during installation (CLI-only).",
-)
-@click.option(
-    "--source-dir",
-    type=click.Path(file_okay=False, dir_okay=True),
-    default=None,
-    help="Custom source directory to install from (CLI-only).",
-)
-def install(mode, install_root, no_desktop, download_models, source_dir):
-    """Run the installer (GUI or CLI).
-
-    Examples:
-      laph install --mode gui
-      laph install --mode cli --install-root ~/.local
-      laph install --mode both --download-models
-    """
-    if mode in ("gui", "both"):
-        try:
-            from core.installer_gui import run_installer_gui
-
-            click.echo(click.style("Launching graphical installer...", fg="cyan"))
-            run_installer_gui()
-        except Exception as e:
-            click.echo(
-                click.style(f"Error launching installer GUI: {e}", fg="red"),
-                err=True,
-            )
-            if mode == "gui":
-                sys.exit(1)
-
-    if mode in ("cli", "both"):
-        try:
-            from core.installer_gui import perform_install
-
-            click.echo(click.style("Starting CLI installer...", fg="cyan"))
-            result = perform_install(
-                install_root=install_root,
-                create_desktop=not no_desktop,
-                download_models=download_models,
-                source_dir=source_dir,
-                log_callback=lambda x: click.echo(x),
-                progress_callback=lambda value, status: click.echo(
-                    f"[{value}%] {status}"
-                ),
-            )
-            click.echo(click.style("Installation complete.", fg="green"))
-            click.echo(f"Installed to: {result['app_dir']}")
-            click.echo("Run 'laph' for GUI and 'laph-cli' for CLI.")
-        except Exception as e:
-            click.echo(click.style(f"❌ Installation failed: {e}", fg="red"), err=True)
-            sys.exit(1)
 
 
 @cli.command()

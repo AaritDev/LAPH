@@ -19,6 +19,43 @@ ICON_DIR="$SHARE_DIR/icons/hicolor/256x256/apps"
 VENV_DIR="$APP_DIR/venv"
 DESKTOP_FILE="$DESKTOP_DIR/$APP_ID.desktop"
 
+# ------------------------------------------------------------
+# Installation mode selection
+# ------------------------------------------------------------
+echo "==> L.A.P.H. Installation Options"
+echo
+echo "Choose installation mode:"
+echo "  1) Full installation (GUI + CLI) - Recommended"
+echo "  2) CLI only (command-line interface)"
+echo "  3) GUI only (graphical interface)"
+echo
+
+read -p "Enter choice [1-3] (default: 1): " choice
+choice=${choice:-1}
+
+case $choice in
+  1)
+    echo "==> Installing full version (GUI + CLI)"
+    INSTALL_GUI=true
+    INSTALL_CLI=true
+    ;;
+  2)
+    echo "==> Installing CLI only"
+    INSTALL_GUI=false
+    INSTALL_CLI=true
+    ;;
+  3)
+    echo "==> Installing GUI only"
+    INSTALL_GUI=true
+    INSTALL_CLI=false
+    ;;
+  *)
+    echo "Invalid choice. Installing full version."
+    INSTALL_GUI=true
+    INSTALL_CLI=true
+    ;;
+esac
+
 echo "==> Installing $APP_NAME (user-local)"
 
 # ------------------------------------------------------------
@@ -65,29 +102,33 @@ fi
 deactivate
 
 # ------------------------------------------------------------
-# Create a launcher script in the bin directory that won't require paths
-LAUNCHER_BIN="$BIN_DIR/laph"
-cat >"$LAUNCHER_BIN" <<'EOF'
+# Create launcher scripts
+# ------------------------------------------------------------
+if [[ "$INSTALL_GUI" == "true" ]]; then
+  echo "==> Creating GUI launcher"
+  LAUNCHER_BIN="$BIN_DIR/laph"
+  cat >"$LAUNCHER_BIN" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
 APP_VENV="$HOME/.local/bin/LAPH/venv"
 "$APP_VENV/bin/python" "$HOME/.local/bin/LAPH/main.py" gui "$@"
 EOF
+  chmod +x "$LAUNCHER_BIN"
+fi
 
-chmod +x "$LAUNCHER_BIN"
-
-# Also create a CLI launcher
-LAUNCHER_CLI="$BIN_DIR/laph-cli"
-cat >"$LAUNCHER_CLI" <<'EOF'
+if [[ "$INSTALL_CLI" == "true" ]]; then
+  echo "==> Creating CLI launcher"
+  LAUNCHER_CLI="$BIN_DIR/laph-cli"
+  cat >"$LAUNCHER_CLI" <<'EOF'
 #!/usr/bin/env bash
 set -e
 
 APP_VENV="$HOME/.local/bin/LAPH/venv"
 "$APP_VENV/bin/python" -m core.cli "$@"
 EOF
-
-chmod +x "$LAUNCHER_CLI"
+  chmod +x "$LAUNCHER_CLI"
+fi
 
 # ------------------------------------------------------------
 # Icon installation
@@ -98,10 +139,11 @@ if [[ -f "$APP_DIR/laph_icon.png" ]]; then
 fi
 
 # ------------------------------------------------------------
-# Desktop entry
+# Desktop entry (only for GUI installation)
 # ------------------------------------------------------------
-echo "==> Creating desktop entry"
-cat >"$DESKTOP_FILE" <<'EOF'
+if [[ "$INSTALL_GUI" == "true" ]]; then
+  echo "==> Creating desktop entry"
+  cat >"$DESKTOP_FILE" <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=L.A.P.H.
@@ -113,8 +155,8 @@ Categories=Development;Utility;
 StartupNotify=true
 Keywords=code;generation;ai;programming;
 EOF
-
-chmod 644 "$DESKTOP_FILE"
+  chmod 644 "$DESKTOP_FILE"
+fi
 
 # ------------------------------------------------------------
 # Optional: pull Ollama models
@@ -136,5 +178,15 @@ fi
 
 echo
 echo "✅ $APP_NAME installed successfully"
-echo "→ Launch from app menu or run: \"$APP_DIR/venv/bin/python $APP_DIR/main.py\" (or run 'laph' if your PATH and desktop support it)"
-echo "→ Uninstall by deleting: $APP_DIR, $DESKTOP_FILE, $ICON_DIR/$APP_ID.png"
+if [[ "$INSTALL_GUI" == "true" && "$INSTALL_CLI" == "true" ]]; then
+  echo "→ GUI: Run 'laph' or launch from app menu"
+  echo "→ CLI: Run 'laph-cli' for command-line interface"
+elif [[ "$INSTALL_GUI" == "true" ]]; then
+  echo "→ GUI: Run 'laph' or launch from app menu"
+elif [[ "$INSTALL_CLI" == "true" ]]; then
+  echo "→ CLI: Run 'laph-cli' for command-line interface"
+fi
+echo "→ Uninstall by deleting: $APP_DIR"
+if [[ "$INSTALL_GUI" == "true" ]]; then
+  echo "  Also delete: $DESKTOP_FILE, $ICON_DIR/$APP_ID.png"
+fi
