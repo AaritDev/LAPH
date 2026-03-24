@@ -17,7 +17,15 @@ from core.gui import LAPH_GUI
 
 
 def main():
-    """Route to appropriate interface based on command-line arguments."""
+    """Route to appropriate interface based on command-line arguments.
+    
+    Handles routing logic:
+    - No args: launches GUI (default)
+    - "gui": explicitly launch GUI
+    - "install": launch the installer
+    - "generate", "cli", "help", etc.: delegate to CLI system
+    - Other strings: treat as task description for code generation
+    """
     # Default to GUI if no arguments provided
     if len(sys.argv) == 1:
         launch_gui()
@@ -26,31 +34,40 @@ def main():
     command = sys.argv[1].lower()
 
     if command == "gui":
+        # User explicitly requested GUI
         launch_gui()
     elif command == "install":
+        # User explicitly requested installer
         launch_installer()
     elif command in ("generate", "cli", "--help", "-h", "help"):
-        # Delegate to CLI system
+        # Delegate to CLI system for these known commands
         from core.cli import cli
 
-        sys.argv.pop(1)  # Remove 'cli' or similar command
+        sys.argv.pop(1)  # Remove the 'cli' or similar command
         cli()
     else:
-        # Treat as CLI command
+        # Treat any other input as a CLI command
         from core.cli import cli
 
         cli()
 
 
 def launch_gui():
-    """Launch the graphical user interface."""
+    """Launch the graphical user interface.
+    
+    Initializes Tkinter root window and instantiates the LAPH_GUI class
+    to display the full GUI interface.
+    """
     root = tk.Tk()
     app = LAPH_GUI(root)
     root.mainloop()
 
 
 def launch_installer():
-    """Launch the installer GUI."""
+    """Launch the installer GUI.
+    
+    Initializes the graphical installer interface from the installer_gui module.
+    """
     from core.installer_gui import run_installer_gui
 
     run_installer_gui()
