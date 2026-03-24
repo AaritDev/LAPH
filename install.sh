@@ -61,6 +61,8 @@ echo "==> Installing $APP_NAME (user-local)"
 # ------------------------------------------------------------
 # Sanity checks
 # ------------------------------------------------------------
+# Ensure that required runtime (python3) is available before proceeding.
+# This script is designed for user-local installation without sudo.
 command -v python3 >/dev/null || {
   echo "ERROR: python3 not found"
   exit 1
@@ -69,6 +71,7 @@ command -v python3 >/dev/null || {
 # ------------------------------------------------------------
 # Create directories
 # ------------------------------------------------------------
+# Setup XDG-friendly paths for binaries, desktop entry and icons.
 mkdir -p "$APP_DIR" "$DESKTOP_DIR" "$ICON_DIR"
 
 # ------------------------------------------------------------

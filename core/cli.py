@@ -81,6 +81,9 @@ def cli(ctx, task):
 @cli.command(name="help")
 def show_help():
     """Show helpful usage examples and tips."""
+    # This help text is deliberately very explicit, because users can invoke
+    # CLI as `laph help` or via `laph-cli help` and the default `generate` path
+    # should not convert 'help' into a coding task accidentally.
     help_text = """
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║                  L.A.P.H. — Local Autonomous Programming Helper              ║
