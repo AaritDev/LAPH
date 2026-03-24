@@ -1,7 +1,25 @@
-ONLY FOR ME.txt
-core/__pycache__/
-logs/laph.log
-.directory
-tests/__pycache__/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+logs/
+*.log
+
+# Local environment
+.env
+.venv
 venv/
-LOGS.txt
+
+# JetBrains
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor temp
+*~
+*.swp
+*.swo
