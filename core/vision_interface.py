@@ -10,4 +10,6 @@ class VisionInterface:
 
     def analyze_gui(self, image_path: str):
         """Analyze a screenshot at `image_path` and return a simple status string."""
-        return "VISION_NOT_IMPLEMENTED"
+        raise NotImplementedError(
+            "Vision analysis not yet implemented. Planned for Phase 2."
+        )

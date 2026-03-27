@@ -1,0 +1,14 @@
+[thinker]
+plugin = "core.plugins.ollama_thinker.OllamaThinker"
+model = "qwen3:14b"
+
+[coder]
+plugin = "core.plugins.ollama_coder.OllamaCoder"
+model = "qwen2.5-coder:7b-instruct"
+
+[runner]
+plugin = "core.plugins.subprocess_runner.SubprocessRunner"
+
+[evaluator]
+plugin = "core.plugins.llm_evaluator.LLMEvaluator"
+model = "qwen3:4b"

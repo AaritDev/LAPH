@@ -2,14 +2,16 @@
 
 This module contains the `RepairLoop` class which coordinates the iterative
 Thinker -> Coder -> Runner cycle. It asks the thinker for a specification,
-asks the coder to generate code, runs the code in a sandboxed runner, and
-feeds errors back into the cycle until a passing program is produced or the
-maximum iterations are exhausted.
+asks the coder to generate code, runs the code in a sandboxed runner, evaluates
+output with rich reward signal, and continuously repairs until success or
+the maximum iterations are exhausted.
 """
 
+import importlib
 import json
 import os
 import re
+import sqlite3
 import time
 from typing import Callable, Optional, Tuple
 
@@ -20,172 +22,206 @@ from core.runner import CodeRunner
 
 
 class RepairLoop:
-    """Orchestrates the iterative repair cycle (Thinker -> Coder -> Runner -> Thinker)."""
+    """Orchestrates the iterative repair cycle with pluggable components."""
 
-    def __init__(self, logger: Optional[Logger], model_name: str = "qwen3:14b") -> None:
-        """Initialize LLM interfaces, runner and prompt manager.
+    def __init__(self, logger: Optional[Logger] = None, model_name: str = "qwen3:14b") -> None:
+        """Initialize LLM interfaces, runner, prompt manager, and plugins."""
+        self.logger = logger or Logger()
+        self.prompt_manager = PromptManager()
 
-        Loads model names from `configs/models.toml` and instantiates role-specific
-        LLM interfaces used by the repair loop.
-        """
-        # Load all models
-        from core.llm_interface import LLMInterface
-        import toml
+        self.plugins = self._load_plugins()
 
-        models_cfg = toml.load("configs/models.toml")
+        # fallback strategies if plugin not available
+        self.thinker = self.plugins.get("thinker") or self._default_thinker(model_name)
+        self.coder = self.plugins.get("coder") or self._default_coder(model_name)
+        self.runner = self.plugins.get("runner") or self._default_runner()
+        self.evaluator = self.plugins.get("evaluator") or self._default_evaluator(model_name)
+
         self.models = {
-            "thinker": LLMInterface(model_name),
-            "summariser": LLMInterface(models_cfg["mini"]["name"]),
-            "vision": LLMInterface(models_cfg["vision"]["name"]),
-            "coder": LLMInterface(models_cfg["coder"]["name"]),
+            "thinker": self.thinker,
+            "coder": self.coder,
+            "runner": self.runner,
+            "evaluator": self.evaluator,
         }
-        self.runner = CodeRunner()
-        self.prompts = PromptManager()
-        self.logger = logger
-        # Provide a minimal no-op logger when `logger` is None for tests or simple runs
-        if self.logger is None:
 
-            class _NullLogger:
-                def log(self, *args, **kwargs):
+        self.working_code: Optional[str] = None
+
+    def _load_plugins(self) -> dict:
+        """Load plugin classes from configs/plugins.toml."""
+        try:
+            import toml
+        except ImportError:
+            self.logger.log("toml package not installed; using default built-in plugins", level=30)
+            return {}
+
+        plugins = {}
+        try:
+            cfg = toml.load("configs/plugins.toml")
+        except FileNotFoundError:
+            return plugins
+
+        for role, section in cfg.items():
+            plugin_path = section.get("plugin")
+            if not plugin_path:
+                continue
+            module_name, class_name = plugin_path.rsplit(".", 1)
+            try:
+                module = importlib.import_module(module_name)
+                plugin_class = getattr(module, class_name)
+                if role == "thinker":
+                    plugins[role] = plugin_class(section.get("model", "qwen3:14b"))
+                elif role == "coder":
+                    plugins[role] = plugin_class(section.get("model", "qwen2.5-coder:7b-instruct"))
+                elif role == "evaluator":
+                    plugins[role] = plugin_class(section.get("model", "qwen3:4b"))
+                else:
+                    plugins[role] = plugin_class()
+            except Exception as e:
+                self.logger.log(f"[Plugin load failed for {role}] {e}", level=40)
+
+        return plugins
+
+    def _default_thinker(self, model_name: str):
+        return self._DefaultThinker(model_name, self.prompt_manager)
+
+    def _default_coder(self, model_name: str):
+        return self._DefaultCoder(model_name, self.prompt_manager)
+
+    def _default_runner(self):
+        return self._DefaultRunner()
+
+    def _default_evaluator(self, model_name: str):
+        return self._DefaultEvaluator(model_name)
+
+    class _DefaultThinker:
+        def __init__(self, model_name, prompts):
+            self.llm = LLMInterface(model_name)
+            self.prompts = prompts
+
+        def generate_spec(self, task, code, error):
+            thinker_prompt = self.prompts.build_thinker(task, code, error)
+            self_llm_out = ""
+            for c in self.llm.generate(thinker_prompt):
+                self_llm_out += c
+            m = re.search(r"```json\s*([\s\S]*?)```", self_llm_out)
+            if m:
+                try:
+                    parsed = json.loads(m.group(1))
+                    return parsed.get("spec", "").strip() if isinstance(parsed, dict) else ""
+                except Exception:
                     pass
+            m2 = re.search(r"```(?:python\n)?([\s\S]*?)```", self_llm_out)
+            if m2:
+                return m2.group(1).strip()
+            return self_llm_out.strip()
 
-            self.logger = _NullLogger()
+    class _DefaultCoder:
+        def __init__(self, model_name, prompts):
+            self.llm = LLMInterface(model_name)
+            self.prompts = prompts
 
-    def _generate_spec(
-        self,
-        task: str,
-        code: Optional[str],
-        last_error: Optional[str],
-        stream_callback: Optional[Callable[[str, str], None]],
-    ) -> str:
-        """Ask the thinker LLM to produce a specification for the given task.
+        def generate_code(self, spec, code, error):
+            coder_prompt = self.prompts.build_coder(spec, code, error)
+            out = ""
+            for c in self.llm.generate(coder_prompt):
+                out += c
 
-        Returns the spec string (preferably extracted from fenced JSON block) or
-        falls back to raw thinker text.
-        """
-        thinker_prompt = self.prompts.build_thinker(task, code, last_error)
-        self.logger.log("--- Thinker Prompt ---\n" + thinker_prompt)
-        # Inform UI about the prompt and start of generation
-        if stream_callback:
-            stream_callback(thinker_prompt, "thinker_prompt")
-            stream_callback(None, "thinker_start")
+            fences = re.findall(r"```(?:python\n)?([\s\S]*?)```", out)
+            if not fences:
+                return out.strip(), None
+            if len(fences) == 1:
+                return fences[0].strip(), None
+            last = fences[-1]
+            if "assert " in last or "pytest" in last or "unittest" in last:
+                block = "\n\n".join(fences[:-1])
+                return block.strip(), last.strip()
+            return fences[0].strip(), None
 
-        spec_output = ""
-        self.logger.log("--- Thinker Output ---")
-        for chunk in self.models["thinker"].generate(thinker_prompt):
-            spec_output += chunk
-            if stream_callback:
-                stream_callback(chunk, "thinker")
+    class _DefaultRunner:
+        def __init__(self):
+            self.runner = CodeRunner()
 
-        # signal end of thinker output
-        if stream_callback:
-            stream_callback(None, "thinker_end")
+        def run(self, code):
+            return self.runner.run_code(code)
 
-        # If the LLM stream failed early, stop and return an empty spec
-        thinker_error = getattr(self.models.get("thinker"), "last_error", None)
-        if thinker_error:
-            self.logger.log(f"[Thinker stream error] {thinker_error}")
-            return ""
+        def run_code(self, code):
+            return self.run(code)
 
-        # Try to extract a JSON fenced block first, then fallback to raw text
-        json_block = None
-        m = re.search(r"```json\s*([\s\S]*?)```", spec_output)
-        if m:
-            try:
-                parsed = json.loads(m.group(1))
-                json_block = parsed.get("spec") if isinstance(parsed, dict) else None
-            except Exception as e:
-                self.logger.log(f"[Thinker JSON parse error] {e}")
+        def run_code_interactive(self, code, inputs=None, timeout=10):
+            return self.runner.run_code_interactive(code, inputs=inputs, timeout=timeout)
 
-        if json_block is None:
-            # Fallback: try to find a plain JSON object anywhere in the output
-            try:
-                start = spec_output.find("{")
-                end = spec_output.rfind("}")
-                if start != -1 and end != -1 and end > start:
-                    parsed = json.loads(spec_output[start : end + 1])
-                    json_block = (
-                        parsed.get("spec") if isinstance(parsed, dict) else None
-                    )
-            except Exception as e:
-                self.logger.log(f"[Thinker JSON fallback parse error] {e}")
+    class _DefaultEvaluator:
+        def __init__(self, model_name):
+            self.model_name = model_name
+            self.llm = LLMInterface(model_name)
 
-        if json_block:
-            return json_block.strip()
+        def evaluate(self, code, stdout, stderr, exitcode, task):
+            score = 0.0
+            if exitcode == 0:
+                score += 1
+            if not stderr:
+                score += 1
+            if stdout.strip():
+                score += 1
 
-        # Last resort: return the raw text (strip any fenced ticks)
-        return self._extract_code_from_output(spec_output)
+            query = f"Does this output satisfy the task '{task}'? Output: {stdout}. Answer YES or NO."
+            result_str = ""
+            for chunk in self.llm.generate(query):
+                result_str += chunk
 
-    def _generate_code(
-        self,
-        spec: str,
-        code: Optional[str],
-        last_error: Optional[str],
-        stream_callback: Optional[Callable[[str, str], None]],
-    ) -> Tuple[str, Optional[str]]:
-        """Ask the coder LLM to generate code based on `spec`.
+            if "YES" in result_str.upper():
+                score += 2
+            return score
 
-        Returns a tuple (cleaned_code, tests_piece) where `tests_piece` may be None.
-        """
-        coder_prompt = self.prompts.build_coder(spec, code, last_error)
-        self.logger.log("--- Coder Prompt ---\n" + coder_prompt)
-        # Inform UI about the prompt and start of generation
-        if stream_callback:
-            stream_callback(coder_prompt, "coder_prompt")
-            stream_callback(None, "coder_start")
+    def _generate_spec(self, task: str, code: Optional[str], last_error: Optional[str], stream_callback: Optional[Callable[[str, str], None]] = None) -> str:
+        return self.thinker.generate_spec(task, code, last_error)
 
-        new_code_output = ""
-        self.logger.log("--- Coder Output ---")
-        for chunk in self.models["coder"].generate(coder_prompt):
-            new_code_output += chunk
-            if stream_callback:
-                stream_callback(chunk, "coder")
-
-        # signal end of coder output
-        if stream_callback:
-            stream_callback(None, "coder_end")
-
-        # If the coder stream failed early, return empty output so the loop can retry.
-        coder_error = getattr(self.models.get("coder"), "last_error", None)
-        if coder_error:
-            self.logger.log(f"[Coder stream error] {coder_error}")
-            return "", None
-
-        new_code = new_code_output
-        # Separate code and optional tests from fenced blocks
-        code_piece, tests_piece = self._split_code_and_tests(new_code)
-        cleaned = code_piece.strip()
-        return cleaned, tests_piece
+    def _generate_code(self, spec: str, code: Optional[str], last_error: Optional[str], stream_callback: Optional[Callable[[str, str], None]] = None) -> Tuple[str, Optional[str]]:
+        return self.coder.generate_code(spec, code, last_error)
 
     def _split_code_and_tests(self, output: str):
-        """Return (code, tests) where tests is a string or None."""
-        import re
-
         fences = re.findall(r"```(?:python\n)?([\s\S]*?)```", output)
         if not fences:
-            # no fenced blocks; everything is code
             return output, None
+
         if len(fences) == 1:
-            # single fenced block: assume it's code
             return fences[0], None
-        # multiple fenced blocks: heuristically pick the last as tests if it contains 'assert' or 'pytest'
+
         last = fences[-1]
         if "assert " in last or "pytest" in last or "unittest" in last:
-            # code is everything before the last fence extracted
-            code_blocks = fences[:-1]
-            return "\n\n".join(code_blocks), last
-        # otherwise assume first block is code
+            return "\n\n".join(fences[:-1]), last
+
         return fences[0], None
 
-    def _sanitize_code_for_run(
-        self, code: str, tests: Optional[str]
-    ) -> Tuple[str, str, Optional[str]]:
-        """Return a (preamble, code, tests) tuple where preamble contains any auto-injected imports or seeds."""
-        preamble_lines = []
+    def evaluate_output(self, code: str, stdout: str, stderr: str, exitcode: int, task: str) -> float:
+        return self.evaluator.evaluate(code, stdout, stderr, exitcode, task)
 
+    def _save_session(self, task: str, code: str, iterations: int, success: bool):
+        db = sqlite3.connect("laph.db")
+        cursor = db.cursor()
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY,
+                timestamp TEXT,
+                task TEXT,
+                final_code TEXT,
+                iterations INTEGER,
+                success INTEGER
+            )
+            """
+        )
+        cursor.execute(
+            "INSERT INTO sessions VALUES (NULL, datetime('now'), ?, ?, ?, ?)",
+            (task, code or "", iterations, int(success)),
+        )
+        db.commit()
+        db.close()
+
+    def _sanitize_code_for_run(self, code: str, tests: Optional[str]) -> Tuple[str, str, Optional[str]]:
+        preamble_lines = []
         src = (code or "") + "\n" + (tests or "")
 
-        # If code uses regex but doesn't import re, add it
         if (
             ("re." in src or "re.match" in src or "re.search" in src)
             and "import re" not in code
@@ -193,14 +229,13 @@ class RepairLoop:
         ):
             preamble_lines.append("import re")
 
-        # If tests are present and random is used anywhere, ensure deterministic seeds.
-        # Prefer importing the full module to keep random seeding consistent across runs.
         if tests and ("random" in src or "randint(" in src):
             if "import random" not in code:
                 preamble_lines.append("import random")
+            if "randint(" in src and "from random import randint" not in code:
+                preamble_lines.append("from random import randint")
             preamble_lines.append("random.seed(0)")
         else:
-            # When not in a test context, allow lightweight import patterns.
             if "randint(" in src and "from random import randint" not in code:
                 preamble_lines.append("from random import randint")
             elif ("random." in src or "random(" in src) and (
@@ -214,16 +249,12 @@ class RepairLoop:
         return "", code, tests
 
     def _extract_code_from_output(self, output: str) -> str:
-        """Extract code from model output, preferring fenced ```python blocks."""
-        # If the model wrapped code in ``` fences, extract the first fenced block.
         fence_match = re.search(r"```(?:python\n)?([\s\S]*?)```", output)
         if fence_match:
             return fence_match.group(1).strip()
-        # Sometimes models include triple grave accents with no language
         fence_match2 = re.search(r"```([\s\S]*?)```", output)
         if fence_match2:
             return fence_match2.group(1).strip()
-        # Otherwise, assume all output is code; but strip any leading explanatory lines
         return output.strip()
 
     def run_task(
@@ -232,14 +263,6 @@ class RepairLoop:
         max_iters: int = 20,
         stream_callback: Optional[Callable[[str, str], None]] = None,
     ) -> Optional[str]:
-        """Top-level loop: attempt to synthesize and run code until success or max_iters.
-
-        For each iteration the method:
-        - asks the Thinker for a spec
-        - asks the Coder for code
-        - runs the code in a sandboxed runner
-        - invokes the Thinker to interact on failures and optionally provides followups
-        """
         code = None
         last_error = None
         working_code = None
@@ -247,55 +270,45 @@ class RepairLoop:
         for i in range(max_iters):
             self.logger.log(f"--- Iteration {i+1}/{max_iters} ---")
 
-            # Prefer using the last known working code to keep prompts focused.
-            spec = self._generate_spec(
-                task, working_code or code, last_error, stream_callback
-            )
+            spec = self.thinker.generate_spec(task, working_code or code, last_error)
             self.logger.log("--- Running Code ---")
-            code, tests = self._generate_code(spec, code, last_error, stream_callback)
+            code, tests = self.coder.generate_code(spec, code, last_error)
 
-            # If tests are present, append them to the code so they run together
             run_payload = code
             if tests:
                 run_payload = code + "\n\n" + tests
 
-            # Sanitize: auto-inject imports/seeds when obvious
-            preamble, run_code_sanitized, run_tests_sanitized = (
-                self._sanitize_code_for_run(code, tests)
-            )
+            preamble, run_code_sanitized, run_tests_sanitized = self._sanitize_code_for_run(code, tests)
             if run_tests_sanitized:
-                full_payload = (
-                    preamble + run_code_sanitized + "\n\n" + run_tests_sanitized
-                )
+                full_payload = preamble + run_code_sanitized + "\n\n" + run_tests_sanitized
             else:
                 full_payload = preamble + run_code_sanitized
 
             self.logger.log("--- Running Code ---")
-            stdout, stderr, exitcode = self.runner.run_code(full_payload)
+            stdout, stderr, exitcode = self.runner.run(full_payload)
 
             self.logger.log("--- Execution Result ---")
             self.logger.log("STDOUT:\n" + stdout)
             self.logger.log("STDERR:\n" + stderr)
 
-            if exitcode == 0:
-                self.logger.log("🎉 Success! Program runs without errors.")
+            evaluation_score = self.evaluate_output(code, stdout, stderr, exitcode, task)
+            self.logger.log(f"Evaluation score: {evaluation_score}")
+
+            if evaluation_score >= 3.0:
+                self.logger.log("🎉 Success! Program passes evaluation.")
                 working_code = code
+                self._save_session(task, code, i + 1, success=True)
                 return code
 
-            # Give the Thinker a chance to interact with the failed run and gather more evidence
             self.logger.log("--- Invoking Thinker Interaction ---")
-            interaction_prompt = self.prompts.build_thinker_interaction(
-                task, code, stdout, stderr, exitcode
-            )
+            interaction_prompt = self.prompt_manager.build_thinker_interaction(task, code, stdout, stderr, exitcode)
             self.logger.log("--- Thinker Interaction Prompt ---\n" + interaction_prompt)
-
-            # stream prompt and start/end signals for UI
             if stream_callback:
                 stream_callback(interaction_prompt, "thinker_prompt")
                 stream_callback(None, "thinker_start")
 
             interaction_output = ""
-            for chunk in self.models["thinker"].generate(interaction_prompt):
+            for chunk in self.thinker.llm.generate(interaction_prompt) if hasattr(self.thinker, 'llm') else []:
                 interaction_output += chunk
                 if stream_callback:
                     stream_callback(chunk, "thinker")
@@ -303,61 +316,45 @@ class RepairLoop:
             if stream_callback:
                 stream_callback(None, "thinker_end")
 
-            # Try to parse JSON out of the thinker's output (prefer fenced json blocks)
             parsed = None
             try:
-                import re
-
                 m = re.search(r"```json\s*([\s\S]*?)```", interaction_output)
                 if m:
                     parsed = json.loads(m.group(1))
                 else:
-                    # fallback to any JSON object in the output
                     start = interaction_output.find("{")
                     end = interaction_output.rfind("}")
                     if start != -1 and end != -1 and end > start:
                         parsed = json.loads(interaction_output[start : end + 1])
             except Exception as e:
-                self.logger.log(f"[Thinker interaction parse error] {e}")
+                self.logger.log(f"[Thinker interaction parse error] {e}", level=40)
 
             if isinstance(parsed, dict):
                 actions = parsed.get("actions", [])
                 followup_spec = parsed.get("followup_spec", "")
 
-                # Execute any input actions
                 inputs = [a["payload"] for a in actions if a.get("type") == "input"]
                 if inputs:
                     self.logger.log("--- Running interactive actions ---")
-                    istdout, istderr, iexit = self.runner.run_code_interactive(
-                        code, inputs=inputs
-                    )
+                    istdout, istderr, iexit = self.runner.run_code_interactive(code, inputs=inputs)
                     self.logger.log("--- Interactive Execution Result ---")
                     self.logger.log("ISTDOUT:\n" + istdout)
                     self.logger.log("ISTDERR:\n" + istderr)
-                    # After interactions, feed results back into thinker/coder cycle as last_error
                     last_error = istderr or stderr
-                    # Optionally push a new spec to coder if available
                     if followup_spec:
-                        spec = followup_spec
-                        # generate a new code attempt with the followup spec
-                        code, tests = self._generate_code(
-                            spec, code, last_error, stream_callback
-                        )
+                        self.logger.log("--- Applying followup spec ---")
+                        code, tests = self.coder.generate_code(followup_spec, code, last_error)
                         continue
-                else:
-                    # No input actions; if a followup_spec exists, use it
-                    if followup_spec:
-                        spec = followup_spec
-                        code, tests = self._generate_code(
-                            spec, code, last_error, stream_callback
-                        )
-                        continue
+                elif followup_spec:
+                    code, tests = self.coder.generate_code(followup_spec, code, last_error)
+                    continue
 
-            # Fallback: no usable interaction or followup. Avoid reusing stale failing code.
             code = working_code
             last_error = stderr
             self.logger.log("--- Code failed, trying again... ---")
             time.sleep(2)
 
+        self._save_session(task, working_code or "", max_iters, success=False)
         self.logger.log("❌ Failed to generate a working script after max iterations.")
         return None
+
