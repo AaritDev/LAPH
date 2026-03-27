@@ -3,6 +3,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Testing
+.pytest_cache/
+
+# Database
+laph.db
+
+# State files
+state.txt
+
 # Logs
 logs/
 *.log
@@ -23,3 +32,4 @@ Thumbs.db
 *~
 *.swp
 *.swo
+.directory
