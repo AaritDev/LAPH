@@ -86,8 +86,8 @@ def show_help():
     # should not convert 'help' into a coding task accidentally.
     help_text = """
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║                  L.A.P.H. — Local Autonomous Programming Helper              ║
-║          An offline AI system that writes, runs, debugs, and fixes code      ║
+║                  L.A.P.H. — Local Autonomous Programming Helper               ║
+║          An offline AI system that writes, runs, debugs, and fixes code       ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 📚 QUICK START
