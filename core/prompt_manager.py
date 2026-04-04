@@ -5,6 +5,8 @@ This module centralizes the text prompts used to interact with LLM roles
 directory and small helpers build full prompt strings for each use case.
 """
 
+from pathlib import Path
+
 
 class PromptManager:
     """Load and format prompts for different LLM roles (thinker, coder, etc.)."""
@@ -12,17 +14,24 @@ class PromptManager:
     def __init__(self):
         """Load prompt templates from the `prompts/` directory into memory."""
         self.prompts = {}
-        self.prompts["thinker"] = self._load_prompt("prompts/thinker_prompt.txt")
+        self.prompts["thinker"] = self._load_prompt("thinker_prompt.txt")
         self.prompts["thinker_interaction"] = self._load_prompt(
-            "prompts/thinker_interaction_prompt.txt"
+            "thinker_interaction_prompt.txt"
         )
-        self.prompts["summariser"] = self._load_prompt("prompts/summariser_prompt.txt")
-        self.prompts["vision"] = self._load_prompt("prompts/vision_prompt.txt")
-        self.prompts["coder"] = self._load_prompt("prompts/coder_prompt.txt")
+        self.prompts["summariser"] = self._load_prompt("summariser_prompt.txt")
+        self.prompts["vision"] = self._load_prompt("vision_prompt.txt")
+        self.prompts["coder"] = self._load_prompt("coder_prompt.txt")
 
-    def _load_prompt(self, path):
-        """Read a prompt file from disk and return its contents as a string."""
-        with open(path, "r") as f:
+    def _load_prompt(self, filename):
+        """Read a prompt file from disk and return its contents as a string.
+        
+        Resolves paths relative to the project root, so it works regardless
+        of current working directory.
+        """
+        # Get the project root (2 levels up from this file: core/prompt_manager.py -> root)
+        project_root = Path(__file__).parent.parent
+        prompt_path = project_root / "prompts" / filename
+        with open(prompt_path, "r") as f:
             return f.read()
 
     def build_thinker(self, task, code=None, error=None):
